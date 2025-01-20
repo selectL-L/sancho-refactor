@@ -4,3 +4,4 @@ A silly little bot for a silly little server, written in DiscordGo.
 Current capabilities include:
 - Saying hello.
 - Rolling dice, maybe. Hopefully.
+- Boundary of Death
