@@ -66,7 +66,7 @@ func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate){
 	for i := 0; i<len(channels); i++ {
 		perms, _ := s.State.UserChannelPermissions("1330935741018276022", channels[i].ID)
 		if channels[i].Type == 0 && (perms & 2048 == 2048) {
-			s.ChannelMessageSend(channels[0].ID, "The Server will be well-cared for.\n...After all, the onus always fell on me to give roles that you abandoned.")
+			s.ChannelMessageSend(channels[i].ID, "The Server will be well-cared for.\n...After all, the onus always fell on me to give roles that you abandoned.")
 			return
 		}
 	}
