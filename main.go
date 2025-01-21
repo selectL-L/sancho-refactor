@@ -22,7 +22,7 @@ import (
 var yujin, yujinDead io.ReadCloser
 
 func main(){
-	fmt.Println("I shall pronounce the bot started.")
+	fmt.Printf("[%s] I shall pronounce the bot started.\n", time.Now().Format(time.TimeOnly))
 
 	tokens, err := os.Open("tokens.txt")
     if err != nil {
@@ -49,6 +49,7 @@ func main(){
 	discord.Identify.Intents |= discordgo.IntentGuilds
 	discord.Identify.Intents |= discordgo.IntentGuildMessages
 	discord.Identify.Intents |= discordgo.IntentGuildMessageTyping
+	discord.Identify.Intents |= discordgo.IntentGuildMessageReactions
 	discord.AddHandler(guildCreate)
 	discord.AddHandler(ready)
 	discord.AddHandler(messageCreate)
@@ -74,7 +75,7 @@ func main(){
 		return
 	}
 	fmt.Printf("[%s] The onus has fallen onto me.\n", time.Now().Format(time.TimeOnly))
-
+	discord.MessageReactionAdd("1324527612042678393", "1324541333662204026", "🩸")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
@@ -97,7 +98,7 @@ func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate){
 	}
 
 	if m.Guild.ID == "1250579779837493278" {
-		s.UpdateCustomStatus("Allow me to regale thee... that, in this... adventure of mine... Verily, I was blessed with a family of " + strconv.Itoa(m.Guild.MemberCount-1) + ".")
+		s.UpdateCustomStatus("Allow me to regale thee... that, in this... adventure of mine... Verily, I was blessed with a family of " + strconv.Itoa(m.Guild.MemberCount-2) + ".")
 	}
 }
 
@@ -109,14 +110,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate){
 	if m.ReferencedMessage != nil {
 		refid = m.ReferencedMessage.Author.ID
 	}
-	re := regexp.MustCompile("fuck|shit|ass|idiot|dumb|stupid|clanker")
+	re := regexp.MustCompile("fuck|shit|ass|idiot|dumb|stupid|clanker|bitch")
+	lowerMsg := strings.ToLower(m.Content)
 	if strings.HasPrefix(m.Content, ".roll ") {
 		roll(s, m)
 	} else if m.Content == ".bod" {
 		bod(s, m)
-	} else if re.MatchString(m.Content) && (refid == s.State.User.ID || strings.Contains(strings.ToLower(m.Content), "sancho")){
+	} else if strings.Contains(lowerMsg,"kiss") && (refid == s.State.User.ID || strings.Contains(strings.ToLower(m.ContentWithMentionsReplaced()), "sancho")){
+		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
+	} else if re.MatchString(lowerMsg) && (refid == s.State.User.ID || strings.Contains(strings.ToLower(m.ContentWithMentionsReplaced()), "sancho")){
 		fut(s,m)
-	} else if strings.Contains(m.Content, "conceived") && m.Author.ID == "530516460712361986"{
+	} else if strings.Contains(lowerMsg, "conceived") && m.Author.ID == "530516460712361986"{
 		conceived(s,m)
 	}
 }
