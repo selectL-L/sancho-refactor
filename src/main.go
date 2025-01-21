@@ -122,6 +122,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate){
 		nacho(s,m)
 	} else if m.Content == ".badword"{
 		badword(s,m)
+	} else if m.Content == ".rye"{
+		rye(s,m)
 	} else if m.Content == ".jpeg"{
 		jpegify(s,m,orb, 5)
 	} else if m.Content == ".yesod"{

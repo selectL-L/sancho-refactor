@@ -15,8 +15,6 @@ import (
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
 
-var err error
-
 func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 	c, err := s.State.Channel(m.ChannelID)
 	if err != nil {
@@ -216,6 +214,27 @@ func badword(s *discordgo.Session, m *discordgo.MessageCreate){
 	})
 }
 
+func rye(s *discordgo.Session, m *discordgo.MessageCreate){
+	c, err := s.State.Channel(m.ChannelID)
+	if err != nil {
+		return
+	}
+	resp, err := http.Get("https://cdn.discordapp.com/attachments/1192614939689484359/1331063478290616470/attachment.gif?ex=6790e9b7&is=678f9837&hm=6a31133ec49b8c54e3f91bc373e5db1ca94cb065450e8da9455a801395222d6a&")
+	if err != nil {
+		log.Fatal("FUCK")
+	}
+	defer resp.Body.Close()
+	img := resp.Body
+	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
+		Files: []*discordgo.File{
+			{
+				Name:   "rye.gif",
+				Reader: img,
+			},
+		},
+	})
+}
+
 func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.MagickWand, quality int){
 	c, err := s.State.Channel(m.ChannelID)
 	if err != nil {
@@ -293,5 +312,4 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.Magi
 
 func sadness(s *discordgo.Session, m *discordgo.MessageCreate){
 	s.ChannelMessageSendReply(m.ChannelID, "Sorry, my creator must have fucked something up.\nPlease pierce him with a sanguine lance and drink his blood.", m.Reference())
-	return
 }
