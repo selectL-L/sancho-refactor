@@ -1,16 +1,21 @@
 package main
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"log"
 	"math"
 	"math/rand"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"gopkg.in/gographics/imagick.v3/imagick"
 )
+
+var err error
 
 func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 	c, err := s.State.Channel(m.ChannelID)
@@ -46,22 +51,19 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
-		sieveSimple := regexp.MustCompile("[0-9]+")
-		sieve := regexp.MustCompile(`[0-9]+[\+\*\-\^_][0-9]+`)
-		var modRune int
-		if !sieve.MatchString(rest) {
-			if !sieveSimple.MatchString(rest) {
-				iKnowWhatYouAre(s, c, m)
-				return
-			}
-			max, _ = strconv.Atoi(rest)
-		} else {
-			modRune = strings.IndexAny(rest, "+*-^_")
-			max, _ = strconv.Atoi(rest[:modRune])
-			mod, _ = strconv.Atoi(rest[modRune+1:])
+		modRune := strings.IndexAny(rest, "+-*^_")
+		if modRune == -1 {
+			modRune = len(rest)
+		}
+
+		max, err = strconv.Atoi(rest[:modRune])
+		if err != nil {
+			iKnowWhatYouAre(s, c, m)
+			return
 		}
 
 		if max < 1 || count < 1 {
+			fmt.Println(max, count)
 			iKnowWhatYouAre(s, c, m)
 			return
 		}
@@ -74,22 +76,34 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 			sum += v
 		}
 
-		if sieve.MatchString(rest) {
-			// fmt.Println(string(rest[modRune]))
-			switch rest[modRune] {
-			case '+':
-				sum += mod
-			case '*':
-				sum *= mod
-			case '-':
-				sum -= mod
-			case '^':
-				sum = int(math.Pow(float64(sum), float64(mod)))
-			case '_':
-				sum = int(math.Pow(float64(mod), float64(sum)))
+		for modRune<len(rest) {
+			rest = rest[modRune:]
+			sign := rest[0]
+			modRune = strings.IndexAny(rest[1:], "+-*^_")+1
+			if modRune == 0 {
+				modRune = len(rest)
 			}
-		}
+			mod, err = strconv.Atoi(rest[1:modRune])
+			if err != nil {
+				iKnowWhatYouAre(s, c, m)
+				return
+			}
 
+			switch sign {
+				case '+':
+					sum += mod
+				case '*':
+					sum *= mod
+				case '-':
+					sum -= mod
+				case '^':
+					sum = int(math.Pow(float64(sum), float64(mod)))
+				case '_':
+					sum = int(math.Pow(float64(mod), float64(sum)))
+			}
+
+		}
+			
 		s.ChannelMessageSendReply(c.ID, "Your roll is "+strconv.Itoa(sum)+" ("+rawStr[:len(rawStr)-1]+").", m.Reference())
 	}
 }
@@ -103,7 +117,7 @@ func bod(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	resp, err := http.Get("https://cdn.discordapp.com/attachments/927117412770394135/1331006346925178932/Shi1.png?ex=67900bc2&is=678eba42&hm=ee9cae73f48a5b64a9499f7b927313f56131115d103a7367832044058e42576b&")
+	resp, err := http.Get("https://tiphereth.zasz.su/static/assets/cards_thumb/Shi1.jpg")
 	if err != nil {
 		log.Fatal("FUCK")
 	}
@@ -117,10 +131,16 @@ func bod(s *discordgo.Session, m *discordgo.MessageCreate) {
 	defer resp.Body.Close()
 	yujinDead := resp.Body
 
+	pingId, _ := strings.CutPrefix(m.Content, ".bod ")
+	//pingId = pingId[1:len(pingId)-1]
+	ping := ""
+	if _, err := strconv.Atoi(pingId[2:len(pingId)-1]); pingId[1] == '@' && err == nil {
+		ping = pingId
+	} 
 	roll := rand.Intn(4) + 1
 	if roll == 4 {
 		s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
-			Content: "**4**",
+			Content: "**4**"+" "+ping,
 			Files: []*discordgo.File{
 				{
 					Name:   "yujin.png",
@@ -152,4 +172,126 @@ func fut(s *discordgo.Session, m *discordgo.MessageCreate) {
 		"...Did you learn that from that Knight? How humorous.",
 	}
 	s.ChannelMessageSendReply(m.ChannelID, messages[rand.Intn(len(messages))], m.Reference())
+}
+
+func nacho(s *discordgo.Session, m *discordgo.MessageCreate){
+	c, err := s.State.Channel(m.ChannelID)
+	if err != nil {
+		return
+	}
+	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326711467475034/GfVZ6foXsAAXfdY.jpg?ex=6791361e&is=678fe49e&hm=d86cc63397b25dfb33ca7fec58287d8f23f177523aaf0fa0d0bcefa1a1145fb0&")
+	if err != nil {
+		log.Fatal("FUCK")
+	}
+	defer resp.Body.Close()
+	nacho := resp.Body
+	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
+		Files: []*discordgo.File{
+			{
+				Name:   "nacho.jpg",
+				Reader: nacho,
+			},
+		},
+	})
+}
+
+func badword(s *discordgo.Session, m *discordgo.MessageCreate){
+	c, err := s.State.Channel(m.ChannelID)
+	if err != nil {
+		return
+	}
+	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326712113270914/qxckfwvd8vzd1.gif?ex=6791361f&is=678fe49f&hm=c1cc119f1e91ea70e34a766992133b4fcc392957db3b4e25a7cfd44fb25df0e5&")
+	if err != nil {
+		log.Fatal("FUCK")
+	}
+	defer resp.Body.Close()
+	img := resp.Body
+	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
+		Files: []*discordgo.File{
+			{
+				Name:   "badword.gif",
+				Reader: img,
+			},
+		},
+	})
+}
+
+func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.MagickWand, quality int){
+	c, err := s.State.Channel(m.ChannelID)
+	if err != nil {
+		return
+	}
+	var resp *http.Response
+	if len(m.Attachments) == 0 || !strings.Contains(m.Attachments[0].ContentType, "image"){
+		if m.ReferencedMessage == nil {
+			s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
+			return
+		}
+		if len(m.ReferencedMessage.Attachments) == 0 || !strings.Contains(m.ReferencedMessage.Attachments[0].ContentType, "image"){
+			s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
+			return
+		}
+		resp, err = http.Get(m.ReferencedMessage.Attachments[0].URL)
+	} else {
+		resp, err = http.Get(m.Attachments[0].URL)
+	}
+
+	//now we pipe the first (for now) image into imagemagick and wait for the result - how?
+	
+	//fn := m.Attachments[0].Filename
+	//ext := fn[strings.LastIndex(fn, ".")+1:]
+	if err != nil {
+		fmt.Println("couldn't get image from internet")
+		sadness(s,m)
+		return
+	}
+	defer resp.Body.Close()
+	orig, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("couldn't extract from html")
+		sadness(s,m)
+		return
+	}
+
+	err = orb.ReadImageBlob(orig)
+	defer orb.Clear()
+	if err != nil {
+		fmt.Println("couldn't read img into orb", err)
+		sadness(s,m)
+		return
+	}
+	orb.SetImageFormat("JPEG")
+	if quality<2{
+		x,y := orb.GetImageWidth(), orb.GetImageHeight()
+		var scalingFactor float64
+		scalingFactor = math.Max(float64(x/160), float64(y/100))
+
+		orb.ResizeImage(uint(float64(x)/scalingFactor), uint(float64(y)/scalingFactor), imagick.FILTER_BOX)
+		orb.PosterizeImage(16, imagick.DITHER_METHOD_FLOYD_STEINBERG)
+		orb.ResizeImage(x,y, imagick.FILTER_BOX)
+		orb.ModulateImage(100,135,100)
+	}
+	orb.SetImageCompressionQuality(uint(quality))
+	orb.SetCompressionQuality(uint(quality))
+	out, err := orb.GetImageBlob()
+	if err != nil {
+		fmt.Println("couldn't shove it back in")
+		sadness(s,m)
+		return
+	}
+	outReader := bytes.NewReader(out)
+	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
+		Reference: m.Reference(),
+		Files: []*discordgo.File{
+			{
+				Name:   "img.jpg",
+				Reader: outReader,
+			},
+		},
+	})
+}
+
+func sadness(s *discordgo.Session, m *discordgo.MessageCreate){
+	s.ChannelMessageSendReply(m.ChannelID, "Sorry, my creator must have fucked something up.\nPlease pierce him with a sanguine lance and drink his blood.", m.Reference())
+	return
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	//"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -13,7 +14,10 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"gopkg.in/gographics/imagick.v3/imagick"
 )
+
+var orb *imagick.MagickWand
 
 func main(){
 	fmt.Printf("[%s] I shall pronounce the bot started.\n", time.Now().Format(time.TimeOnly))
@@ -55,7 +59,25 @@ func main(){
 		return
 	}
 	fmt.Printf("[%s] The onus has fallen onto me.\n", time.Now().Format(time.TimeOnly))
-	discord.MessageReactionAdd("1324527612042678393", "1324541333662204026", "🩸")
+	// resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331362212056399933/eeper_don.png?ex=6791572e&is=679005ae&hm=c8184b914a31af8911e55d911bbe10d461f8b08ee379f820130f4ca44daf6d18&")
+	// if err != nil {
+	// 	log.Fatal("FUCK")
+	// }
+	// defer resp.Body.Close()
+	// img := resp.Body
+	// defer discord.ChannelMessageSendComplex("1331332284372222074", &discordgo.MessageSend{
+	// 	Content: "Good night, Family. Tomorrow we shall take part in the banquet... again. For now, however, I will rest.",
+	// 	Files: []*discordgo.File{
+	// 		{
+	// 			Name:   "goodnight.png",
+	// 			Reader: img,
+	// 		},
+	// 	},
+	// })
+	imagick.Initialize()
+	defer imagick.Terminate()
+	orb = imagick.NewMagickWand()
+	defer orb.Destroy()
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
@@ -94,8 +116,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate){
 	lowerMsg := strings.ToLower(m.Content)
 	if strings.HasPrefix(m.Content, ".roll ") {
 		roll(s, m)
-	} else if m.Content == ".bod" {
+	} else if strings.HasPrefix(m.Content, ".bod") {
 		bod(s, m)
+	} else if m.Content == ".nacho"{
+		nacho(s,m)
+	} else if m.Content == ".badword"{
+		badword(s,m)
+	} else if m.Content == ".jpeg"{
+		jpegify(s,m,orb, 5)
+	} else if m.Content == ".yesod"{
+		jpegify(s,m,orb, 1)
 	} else if strings.Contains(lowerMsg,"kiss") && (refid == s.State.User.ID || strings.Contains(strings.ToLower(m.ContentWithMentionsReplaced()), "sancho")){
 		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
 	} else if re.MatchString(lowerMsg) && (refid == s.State.User.ID || strings.Contains(strings.ToLower(m.ContentWithMentionsReplaced()), "sancho"))  && m.Author.ID != "530516460712361986"{
