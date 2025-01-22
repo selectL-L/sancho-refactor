@@ -100,8 +100,13 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 
 		}
-			
-		s.ChannelMessageSendReply(c.ID, "Your roll is "+strconv.Itoa(sum)+" ("+rawStr[:len(rawStr)-1]+").", m.Reference())
+		
+		out := "Your roll is "+strconv.Itoa(sum)+" ("+rawStr[:len(rawStr)-1]+")."
+		if len(out) > 2000 {
+			s.ChannelMessageSendReply(c.ID, "Your roll is "+strconv.Itoa(sum)+" .", m.Reference())
+			return
+		}
+		s.ChannelMessageSendReply(c.ID, out, m.Reference())
 	}
 }
 
