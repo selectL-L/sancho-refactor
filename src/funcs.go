@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"math"
 	"math/rand"
 	"net/http"
@@ -117,14 +116,14 @@ func bod(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	resp, err := http.Get("https://tiphereth.zasz.su/static/assets/cards_thumb/Shi1.jpg")
 	if err != nil {
-		log.Fatal("FUCK")
+		sadness(s,m)
 	}
 	defer resp.Body.Close()
 	yujin := resp.Body
 
 	resp, err = http.Get("https://tiphereth.zasz.su/static/assets/cards_thumb/Roland4Phase_Yujin.jpg")
 	if err != nil {
-		log.Fatal("FUCK")
+		sadness(s,m)
 	}
 	defer resp.Body.Close()
 	yujinDead := resp.Body
@@ -179,7 +178,7 @@ func nacho(s *discordgo.Session, m *discordgo.MessageCreate){
 	}
 	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326711467475034/GfVZ6foXsAAXfdY.jpg?ex=6791361e&is=678fe49e&hm=d86cc63397b25dfb33ca7fec58287d8f23f177523aaf0fa0d0bcefa1a1145fb0&")
 	if err != nil {
-		log.Fatal("FUCK")
+		sadness(s,m)
 	}
 	defer resp.Body.Close()
 	nacho := resp.Body
@@ -200,7 +199,7 @@ func badword(s *discordgo.Session, m *discordgo.MessageCreate){
 	}
 	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326712113270914/qxckfwvd8vzd1.gif?ex=6791361f&is=678fe49f&hm=c1cc119f1e91ea70e34a766992133b4fcc392957db3b4e25a7cfd44fb25df0e5&")
 	if err != nil {
-		log.Fatal("FUCK")
+		sadness(s,m)
 	}
 	defer resp.Body.Close()
 	img := resp.Body
@@ -221,7 +220,7 @@ func rye(s *discordgo.Session, m *discordgo.MessageCreate){
 	}
 	resp, err := http.Get("https://cdn.discordapp.com/attachments/1192614939689484359/1331063478290616470/attachment.gif?ex=6790e9b7&is=678f9837&hm=6a31133ec49b8c54e3f91bc373e5db1ca94cb065450e8da9455a801395222d6a&")
 	if err != nil {
-		log.Fatal("FUCK")
+		sadness(s,m)
 	}
 	defer resp.Body.Close()
 	img := resp.Body
