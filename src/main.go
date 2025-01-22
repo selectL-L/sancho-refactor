@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	//"net/http"
+	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -59,28 +59,59 @@ func main(){
 		return
 	}
 	fmt.Printf("[%s] The onus has fallen onto me.\n", time.Now().Format(time.TimeOnly))
-	// resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331362212056399933/eeper_don.png?ex=6791572e&is=679005ae&hm=c8184b914a31af8911e55d911bbe10d461f8b08ee379f820130f4ca44daf6d18&")
-	// if err != nil {
-	// 	log.Fatal("FUCK")
-	// }
-	// defer resp.Body.Close()
-	// img := resp.Body
-	// defer discord.ChannelMessageSendComplex("1331332284372222074", &discordgo.MessageSend{
-	// 	Content: "Good night, Family. Tomorrow we shall take part in the banquet... again. For now, however, I will rest.",
-	// 	Files: []*discordgo.File{
-	// 		{
-	// 			Name:   "goodnight.png",
-	// 			Reader: img,
-	// 		},
-	// 	},
-	// })
+
+	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331362212056399933/eeper_don.png?ex=6791572e&is=679005ae&hm=c8184b914a31af8911e55d911bbe10d461f8b08ee379f820130f4ca44daf6d18&")
+	if err != nil {
+		log.Fatal("FUCK")
+	}
+	defer resp.Body.Close()
+	img := resp.Body
+	defer img.Close()
+
 	imagick.Initialize()
 	defer imagick.Terminate()
 	orb = imagick.NewMagickWand()
 	defer orb.Destroy()
+
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	<-sc
+
+	ch := make(chan string)
+	go func() {
+        scanner := bufio.NewScanner(os.Stdin)
+        for scanner.Scan() {
+            ch <- scanner.Text()
+        }
+    }()
+	
+	retch := make(chan int)
+	for {
+        select {
+        case text := <-ch:
+            // process the input asynchronously
+            go func() {
+				if text == "gn"{
+					discord.ChannelMessageSendComplex("1331332284372222074", &discordgo.MessageSend{
+						Content: "Good night, Family. Tomorrow we shall take part in the banquet... again. For now, however, I will rest.",
+						Files: []*discordgo.File{
+							{
+								Name:   "goodnight.png",
+								Reader: img,
+							},
+						},
+					})
+					retch <- 1 // idk how go works, holy shit!
+				}
+				retch <- 0
+            } ()
+			if <-retch == 1 {
+				return
+			}
+		case <-sc:
+			return
+        }
+		
+    }
 }
 
 func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate){
@@ -147,3 +178,4 @@ func ready(s *discordgo.Session, m *discordgo.Ready){
 	}
 	s.UpdateCustomStatus("Allow me to regale thee... that, in this... adventure of mine... Verily, I was blessed with a family of " + strconv.Itoa(num-1) + ".")
 }
+
