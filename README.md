@@ -7,3 +7,6 @@ Current capabilities include:
 - Boundary of Death
 - Jpeg command and its evil brother, Yesod command
 - Some other miscellaneous commands
+
+If you find an issue, open an issue here on GitHub.
+If you find bad code and know how to fix it, open a pull request. Please. My code is garbage.
