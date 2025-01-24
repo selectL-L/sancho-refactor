@@ -177,7 +177,7 @@ func bod(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func conceived(s *discordgo.Session, m *discordgo.MessageCreate) {
-	s.ChannelMessageSendReply(m.ChannelID, "...What is it this time?", m.Reference())
+	s.ChannelMessageSendReply(m.ChannelID, "What... is it this time?", m.Reference())
 }
 
 func fut(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -194,12 +194,6 @@ func nacho(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	// resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326711467475034/GfVZ6foXsAAXfdY.jpg?ex=6791361e&is=678fe49e&hm=d86cc63397b25dfb33ca7fec58287d8f23f177523aaf0fa0d0bcefa1a1145fb0&")
-	// if err != nil {
-	// 	sadness(s, m)
-	// }
-	// defer resp.Body.Close()
-	// nacho := resp.Body
 	nacho, err := os.Open("img/nacho.jpg")
 	if err!=nil{
 		sadness(s,m)
@@ -219,12 +213,6 @@ func badword(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	// resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326712113270914/qxckfwvd8vzd1.gif?ex=6791361f&is=678fe49f&hm=c1cc119f1e91ea70e34a766992133b4fcc392957db3b4e25a7cfd44fb25df0e5&")
-	// if err != nil {
-	// 	sadness(s, m)
-	// }
-	// defer resp.Body.Close()
-	// img := resp.Body
 	img, err := os.Open("img/badword.jpg")
 	if err!=nil{
 		sadness(s,m)
@@ -244,12 +232,10 @@ func rye(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	resp, err := http.Get("https://cdn.discordapp.com/attachments/1192614939689484359/1331063478290616470/attachment.gif?ex=6790e9b7&is=678f9837&hm=6a31133ec49b8c54e3f91bc373e5db1ca94cb065450e8da9455a801395222d6a&")
-	if err != nil {
-		sadness(s, m)
+	img, err := os.Open("img/rye.jpg")
+	if err!=nil{
+		sadness(s,m)
 	}
-	defer resp.Body.Close()
-	img := resp.Body
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 		Files: []*discordgo.File{
 			{
