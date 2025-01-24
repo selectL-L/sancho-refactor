@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -193,12 +194,16 @@ func nacho(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326711467475034/GfVZ6foXsAAXfdY.jpg?ex=6791361e&is=678fe49e&hm=d86cc63397b25dfb33ca7fec58287d8f23f177523aaf0fa0d0bcefa1a1145fb0&")
-	if err != nil {
-		sadness(s, m)
+	// resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326711467475034/GfVZ6foXsAAXfdY.jpg?ex=6791361e&is=678fe49e&hm=d86cc63397b25dfb33ca7fec58287d8f23f177523aaf0fa0d0bcefa1a1145fb0&")
+	// if err != nil {
+	// 	sadness(s, m)
+	// }
+	// defer resp.Body.Close()
+	// nacho := resp.Body
+	nacho, err := os.Open("img/nacho.jpg")
+	if err!=nil{
+		sadness(s,m)
 	}
-	defer resp.Body.Close()
-	nacho := resp.Body
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 		Files: []*discordgo.File{
 			{
@@ -214,12 +219,16 @@ func badword(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326712113270914/qxckfwvd8vzd1.gif?ex=6791361f&is=678fe49f&hm=c1cc119f1e91ea70e34a766992133b4fcc392957db3b4e25a7cfd44fb25df0e5&")
-	if err != nil {
-		sadness(s, m)
+	// resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331326712113270914/qxckfwvd8vzd1.gif?ex=6791361f&is=678fe49f&hm=c1cc119f1e91ea70e34a766992133b4fcc392957db3b4e25a7cfd44fb25df0e5&")
+	// if err != nil {
+	// 	sadness(s, m)
+	// }
+	// defer resp.Body.Close()
+	// img := resp.Body
+	img, err := os.Open("img/badword.jpg")
+	if err!=nil{
+		sadness(s,m)
 	}
-	defer resp.Body.Close()
-	img := resp.Body
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 		Files: []*discordgo.File{
 			{
