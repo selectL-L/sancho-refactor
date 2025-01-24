@@ -76,7 +76,7 @@ func main() {
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-
+	
 	ch := make(chan string)
 	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
@@ -85,6 +85,8 @@ func main() {
 		}
 	}()
 
+	echoChan := "1331332284372222074"
+	echoGuild := "1250579779837493278"
 	retch := make(chan int)
 	for {
 		select {
@@ -102,6 +104,20 @@ func main() {
 						},
 					})
 					retch <- 1 // idk how go works, holy shit!
+				} else if strings.HasPrefix(text, "chan ") {
+					echoChan, _ = strings.CutPrefix(text,"chan ")
+				} else if strings.HasPrefix(text, "guild ") {
+					echoGuild, _ = strings.CutPrefix(text,"guild ")
+				} else if strings.HasPrefix(text, "say ") {
+					raw, _ := strings.CutPrefix(text, "say ")
+					discord.ChannelMessageSend(echoChan, raw)
+				} else if strings.HasPrefix(text, "sayr ") {
+					raw,_ := strings.CutPrefix(text,"sayr ")
+					repId, msg, found := strings.Cut(raw, " ")
+					if !found {
+						log.Println("bro you're doing something wrong")
+					}
+					discord.ChannelMessageSendReply(echoChan, msg, &discordgo.MessageReference{MessageID: repId, ChannelID: echoChan, GuildID: echoGuild})
 				}
 				retch <- 0
 			}()
