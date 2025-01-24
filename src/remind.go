@@ -28,7 +28,7 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 	// first we need to parse time, then we set a timer and record it (in case the bot goes out)
 
 	rawCmd, _ := strings.CutPrefix(m.Content, ".remind")
-	if !strings.Contains(rawCmd, "to"){
+	if !slices.Contains(strings.Split(rawCmd, " "), "to"){
 		s.ChannelMessageSendReply(m.ChannelID, "I know what you are. (please use \"to\" at the beginning of your message)", m.Reference())
 		return
 	}
@@ -37,6 +37,9 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 	cmd = cmd[:slices.Index(cmd,"to")]
 	targetUser := m.Author.ID
 
+	if cmd[0] == "me" {
+		cmd = cmd[1:]
+	}
 	if cmd[0][0] == '<' {
 		if rawCmd[:2] != "me" {
 			targetUser = cmd[0][2 : len(cmd[0])-1]
@@ -104,6 +107,9 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 		timeInUnix = int(destTime.Unix())
 	} else {
 		totalTime := 0
+		if cmd[0] == "in" {
+			cmd = cmd[1:]
+		}
 		for len(cmd) > 0 || eot {
 			timeIncr, err := strconv.Atoi(cmd[0])
 			if err != nil {
