@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -18,14 +19,15 @@ import (
 )
 
 var orb *imagick.MagickWand
+var reminders []Reminder
 
-func main(){
+func main() {
 	fmt.Printf("[%s] I shall pronounce the bot started.\n", time.Now().Format(time.TimeOnly))
 
 	tokens, err := os.Open("tokens.txt")
-    if err != nil {
-        log.Fatal(err)
-    }
+	if err != nil {
+		log.Fatal(err)
+	}
 	defer tokens.Close()
 
 	scanner := bufio.NewScanner(tokens)
@@ -78,19 +80,19 @@ func main(){
 
 	ch := make(chan string)
 	go func() {
-        scanner := bufio.NewScanner(os.Stdin)
-        for scanner.Scan() {
-            ch <- scanner.Text()
-        }
-    }()
-	
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			ch <- scanner.Text()
+		}
+	}()
+
 	retch := make(chan int)
 	for {
-        select {
-        case text := <-ch:
-            // process the input asynchronously
-            go func() {
-				if text == "gn"{
+		select {
+		case text := <-ch:
+			// process the input asynchronously
+			go func() {
+				if text == "gn" {
 					discord.ChannelMessageSendComplex("1331332284372222074", &discordgo.MessageSend{
 						Content: "Good night, Family. Tomorrow we shall take part in the banquet... again. For now, however, I will rest.",
 						Files: []*discordgo.File{
@@ -103,28 +105,37 @@ func main(){
 					retch <- 1 // idk how go works, holy shit!
 				}
 				retch <- 0
-            } ()
+			}()
 			if <-retch == 1 {
 				return
 			}
 		case <-sc:
 			return
-        }
-		
-    }
+		default:
+		}
+		remCpy := slices.Clone(reminders)
+		for i:=0; i<len(remCpy); i++ {
+			select {
+			case <-remCpy[i].timer.C:
+				remind(discord, &(reminders[i]))
+				i--
+			default:
+			}
+		}
+	}
 }
 
-func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate){
+func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate) {
 	if m.Guild.Unavailable {
 		return
 	}
 
 	channels := m.Guild.Channels
 
-	fmt.Println("Joined server "+m.Guild.Name)
-	for i := 0; i<len(channels); i++ {
+	fmt.Println("Joined server " + m.Guild.Name)
+	for i := 0; i < len(channels); i++ {
 		perms, _ := s.State.UserChannelPermissions("1330935741018276022", channels[i].ID)
-		if channels[i].Type == 0 && (perms & 2048 == 2048) && time.Now().Unix()-m.JoinedAt.Unix() < 30{
+		if channels[i].Type == 0 && (perms&2048 == 2048) && time.Now().Unix()-m.JoinedAt.Unix() < 30 {
 			s.ChannelMessageSend(channels[i].ID, "The Server will be well-cared for.\n...After all, the onus always fell on me to give roles that you abandoned.")
 			return
 		}
@@ -135,7 +146,7 @@ func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate){
 	}
 }
 
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate){
+func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
@@ -144,38 +155,90 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate){
 		refid = m.ReferencedMessage.Author.ID
 	}
 	re := regexp.MustCompile("fuck|shit|ass|idiot|dumb|stupid|clanker|bitch")
-	lowerMsg := strings.ToLower(m.Content)
-	if strings.HasPrefix(m.Content, ".roll ") {
+	normMsg := strings.TrimSpace(strings.ToLower(m.ContentWithMentionsReplaced()))
+	if strings.HasPrefix(normMsg, ".roll ") {
 		roll(s, m)
-	} else if strings.HasPrefix(m.Content, ".bod") {
+	} else if strings.HasPrefix(normMsg, ".bod") {
 		bod(s, m)
-	} else if m.Content == ".nacho"{
-		nacho(s,m)
-	} else if m.Content == ".badword"{
-		badword(s,m)
-	} else if m.Content == ".rye"{
-		rye(s,m)
-	} else if m.Content == ".jpeg"{
-		jpegify(s,m,orb, 5)
-	} else if m.Content == ".yesod"{
-		jpegify(s,m,orb, 1)
-	} else if strings.Contains(lowerMsg,"kiss") && (refid == s.State.User.ID || strings.Contains(strings.ToLower(m.ContentWithMentionsReplaced()), "sancho")){
+	} else if normMsg == ".nacho" {
+		nacho(s, m)
+	} else if normMsg == ".badword" {
+		badword(s, m)
+	} else if normMsg == ".rye" {
+		rye(s, m)
+	} else if normMsg == ".jpeg" {
+		jpegify(s, m, orb, 5)
+	} else if normMsg == ".yesod" {
+		jpegify(s, m, orb, 1)
+	} else if strings.HasPrefix(normMsg, ".remind ") || strings.HasPrefix(normMsg, ".remindme "){
+		setReminder(s, m, &reminders)
+	} else if normMsg == ".reminders" {
+		listReminders(s,m, &reminders)
+	} else if strings.HasPrefix(normMsg, ".forget ") || strings.HasPrefix(normMsg, ".deremind "){
+		deleteReminder(s,m, &reminders)
+	} else if strings.Contains(normMsg, "kiss") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) {
 		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
-	} else if re.MatchString(lowerMsg) && (refid == s.State.User.ID || strings.Contains(strings.ToLower(m.ContentWithMentionsReplaced()), "sancho"))  && m.Author.ID != "530516460712361986"{
-		fut(s,m)
-	} else if strings.Contains(lowerMsg, "conceived") && m.Author.ID == "530516460712361986"{
-		conceived(s,m)
+	} else if strings.Contains(normMsg, "mwah") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) && (m.Author.ID == "371077314412412929"){
+		s.ChannelMessageSendReply(m.ChannelID, "...Stop.\nNot here, you're embarassing me!", m.Reference())
+	} else if re.MatchString(normMsg) && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) && m.Author.ID != "530516460712361986" {
+		fut(s, m)
+	} else if strings.Contains(normMsg, "conceived") && m.Author.ID == "530516460712361986" {
+		conceived(s, m)
 	}
 }
 
-func ready(s *discordgo.Session, m *discordgo.Ready){
+func ready(s *discordgo.Session, m *discordgo.Ready) {
 	server, err := s.State.Guild("1250579779837493278")
 	var num int
-	if err != nil{
+	if err != nil {
 		num = 13
 	} else {
 		num = server.MemberCount
 	}
 	s.UpdateCustomStatus("Allow me to regale thee... that, in this... adventure of mine... Verily, I was blessed with a family of " + strconv.Itoa(num-1) + ".")
-}
 
+	reminderFile, err := os.OpenFile("timers.txt", os.O_RDWR, 0666)
+	if err!=nil {
+		panic("fuck")
+	}
+	defer reminderFile.Close()
+
+	newFileData := ""
+	scanner := bufio.NewScanner(reminderFile)
+
+	for scanner.Scan() {
+		reminderText := strings.SplitN(scanner.Text(), " ", 7)
+		remTime, _ := strconv.Atoi(reminderText[1])
+		if int64(remTime) <= time.Now().Unix() {
+			// the order is: request message ID (0), end time (1), start time (2), target user ID (3), channel ID (4), message (5)
+			_, err := s.ChannelMessageSend(reminderText[4], "<@"+reminderText[3]+">: "+reminderText[6]+" (set at <t:"+reminderText[2]+">) (SORRY I'M LATE I WAS BEING LOBOTOMIZED)")
+			if err != nil {
+				sadness(s, nil)
+			}
+		} else {
+			newFileData += scanner.Text()+"\n"
+			totalTime, err := strconv.Atoi(reminderText[1])
+			if err!=nil {
+				sadness(s, nil)
+				panic(err)
+			}
+			totalTime -= int(time.Now().Unix())
+			endInt,_ := strconv.Atoi(reminderText[1])
+			startInt,_ := strconv.Atoi(reminderText[2])
+			reminders = append(reminders, Reminder{
+				end: time.Unix(int64(endInt),0),
+				start: time.Unix(int64(startInt),0),
+				message: reminderText[6],
+				author: reminderText[5],
+				target: reminderText[3],
+				request: nil,
+				rqid: reminderText[0],
+				timer: time.NewTimer(time.Duration(totalTime) * time.Second),
+			})
+		}
+	}
+	err = os.WriteFile("timers.txt", []byte(newFileData), 0666)
+	if err != nil {
+		sadness(s, nil)
+	}
+}
