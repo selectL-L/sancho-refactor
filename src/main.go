@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
-	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -113,14 +112,16 @@ func main() {
 			return
 		default:
 		}
-		remCpy := slices.Clone(reminders)
-		for i:=0; i<len(remCpy); i++ {
-			select {
-			case <-remCpy[i].timer.C:
-				remind(discord, &(reminders[i]))
-				i--
-			default:
-			}
+		iterateReminders(discord)
+	}
+}
+
+func iterateReminders(s *discordgo.Session){
+	for i:=0; i<len(reminders); i++ {
+		select {
+		case <-reminders[i].timer.C:
+			defer remind(s, &(reminders[i]))
+		default:
 		}
 	}
 }
