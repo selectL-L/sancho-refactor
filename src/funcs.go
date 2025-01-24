@@ -54,6 +54,24 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			count, err = strconv.Atoi(countS)
 			if err != nil {
+				if r == "bread" {
+					img, err := os.Open("img/breadroll.jpg")
+					if err!=nil{
+						sadness(s,nil)
+						return
+					}
+					s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
+						Content: "I know what y- You. Again. You know what? FINE. Here's your breadroll. Don't ask me again.",
+						Reference: m.Reference(),
+						Files: []*discordgo.File{
+							{
+								Name:   "breadroll.jpg",
+								Reader: img,
+							},},
+					})
+					img.Close()
+					os.Remove("img/breadroll.jpg")
+				}
 				iKnowWhatYouAre(s, m)
 				return
 			}
@@ -198,6 +216,7 @@ func nacho(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err!=nil{
 		sadness(s,m)
 	}
+	defer nacho.Close()
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 		Files: []*discordgo.File{
 			{
@@ -217,6 +236,7 @@ func badword(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err!=nil{
 		sadness(s,m)
 	}
+	defer img.Close()
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 		Files: []*discordgo.File{
 			{
@@ -236,6 +256,7 @@ func rye(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err!=nil{
 		sadness(s,m)
 	}
+	defer img.Close()
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 		Files: []*discordgo.File{
 			{
