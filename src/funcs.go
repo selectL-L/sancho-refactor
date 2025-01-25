@@ -207,32 +207,12 @@ func fut(s *discordgo.Session, m *discordgo.MessageCreate) {
 	s.ChannelMessageSendReply(m.ChannelID, messages[rand.Intn(len(messages))], m.Reference())
 }
 
-func nacho(s *discordgo.Session, m *discordgo.MessageCreate) {
+func sendimg(s *discordgo.Session, m *discordgo.MessageCreate, name string){
 	c, err := s.State.Channel(m.ChannelID)
 	if err != nil {
 		return
 	}
-	nacho, err := os.Open("img/nacho.jpg")
-	if err!=nil{
-		sadness(s,m)
-	}
-	defer nacho.Close()
-	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
-		Files: []*discordgo.File{
-			{
-				Name:   "nacho.jpg",
-				Reader: nacho,
-			},
-		},
-	})
-}
-
-func badword(s *discordgo.Session, m *discordgo.MessageCreate) {
-	c, err := s.State.Channel(m.ChannelID)
-	if err != nil {
-		return
-	}
-	img, err := os.Open("img/badword.jpg")
+	img, err := os.Open("img/"+name)
 	if err!=nil{
 		sadness(s,m)
 	}
@@ -240,27 +220,7 @@ func badword(s *discordgo.Session, m *discordgo.MessageCreate) {
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 		Files: []*discordgo.File{
 			{
-				Name:   "badword.gif",
-				Reader: img,
-			},
-		},
-	})
-}
-
-func rye(s *discordgo.Session, m *discordgo.MessageCreate) {
-	c, err := s.State.Channel(m.ChannelID)
-	if err != nil {
-		return
-	}
-	img, err := os.Open("img/rye.jpg")
-	if err!=nil{
-		sadness(s,m)
-	}
-	defer img.Close()
-	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
-		Files: []*discordgo.File{
-			{
-				Name:   "rye.gif",
+				Name:   name,
 				Reader: img,
 			},
 		},

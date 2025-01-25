@@ -88,7 +88,9 @@ func main() {
 	echoChan := "1331332284372222074"
 	echoGuild := "1250579779837493278"
 	retch := make(chan int)
+	ticker := time.NewTicker(100*time.Millisecond)
 	for {
+		<-ticker.C
 		select {
 		case text := <-ch:
 			// process the input asynchronously
@@ -178,11 +180,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	} else if strings.HasPrefix(normMsg, ".bod") {
 		bod(s, m)
 	} else if normMsg == ".nacho" {
-		nacho(s, m)
+		sendimg(s, m, "nacho.jpg")
 	} else if normMsg == ".badword" {
-		badword(s, m)
+		sendimg(s, m, "badword.gif")
 	} else if normMsg == ".rye" {
-		rye(s, m)
+		sendimg(s, m, "rye.gif")
+	} else if normMsg == ".ryeldhunt" {
+		sendimg(s, m, "theryeldhunt.gif")
 	} else if normMsg == ".jpeg" {
 		jpegify(s, m, orb, 5)
 	} else if normMsg == ".yesod" {
