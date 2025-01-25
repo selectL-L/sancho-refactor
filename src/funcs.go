@@ -25,6 +25,16 @@ func sadness(s *discordgo.Session, m *discordgo.MessageCreate) {
 	fmt.Println(err)
 }
 
+func help(s *discordgo.Session, m *discordgo.MessageCreate) {
+	ht, err := os.ReadFile("help.md")
+	if err!=nil{
+		sadness(s,m)
+	}
+	s.ChannelMessageSendReply(m.ChannelID, 
+		string(ht),
+		m.Reference())
+}
+
 func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 	c, err := s.State.Channel(m.ChannelID)
 	if err != nil {
@@ -133,7 +143,7 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		out := "Your roll is " + strconv.Itoa(sum) + " (" + rawStr[:len(rawStr)-1] + ")."
 		if len(out) > 2000 {
-			s.ChannelMessageSendReply(c.ID, "Your roll is "+strconv.Itoa(sum)+" .", m.Reference())
+			s.ChannelMessageSendReply(c.ID, "Your roll is "+strconv.Itoa(sum)+".", m.Reference())
 			return
 		}
 		s.ChannelMessageSendReply(c.ID, out, m.Reference())

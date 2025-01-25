@@ -175,28 +175,37 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	re := regexp.MustCompile("fuck|shit|ass|idiot|dumb|stupid|clanker|bitch")
 	normMsg := strings.TrimSpace(strings.ToLower(m.ContentWithMentionsReplaced()))
-	if strings.HasPrefix(normMsg, ".roll ") {
-		roll(s, m)
-	} else if strings.HasPrefix(normMsg, ".bod") {
-		bod(s, m)
-	} else if normMsg == ".nacho" {
-		sendimg(s, m, "nacho.jpg")
-	} else if normMsg == ".badword" {
-		sendimg(s, m, "badword.gif")
-	} else if normMsg == ".rye" {
-		sendimg(s, m, "rye.gif")
-	} else if normMsg == ".ryeldhunt" {
-		sendimg(s, m, "theryeldhunt.gif")
-	} else if normMsg == ".jpeg" {
-		jpegify(s, m, orb, 5)
-	} else if normMsg == ".yesod" {
-		jpegify(s, m, orb, 1)
-	} else if strings.HasPrefix(normMsg, ".remind ") || strings.HasPrefix(normMsg, ".remindme "){
-		setReminder(s, m, &reminders)
-	} else if normMsg == ".reminders" {
-		listReminders(s,m, &reminders)
-	} else if strings.HasPrefix(normMsg, ".forget ") || strings.HasPrefix(normMsg, ".deremind "){
-		deleteReminder(s,m, &reminders)
+	if len(normMsg) == 0 {
+		return
+	}
+	if normMsg[0] == '.'{
+		cmd := strings.Split(normMsg[1:]," ")[0]
+		switch cmd {
+		case "help":
+			help(s,m)
+		case "roll":
+			roll(s, m)
+		case "bod":
+			bod(s, m)
+		case "nacho":
+			sendimg(s, m, "nacho.jpg")
+		case "badword":
+			sendimg(s, m, "badword.gif")
+		case "rye" :
+			sendimg(s, m, "rye.gif")
+		case "ryeldhunt" :
+			sendimg(s, m, "theryeldhunt.gif")
+		case "jpeg" :
+			jpegify(s, m, orb, 5)
+		case "yesod" :
+			jpegify(s, m, orb, 1)
+		case "remind", "remindme":
+			setReminder(s, m, &reminders)
+		case "reminders":
+			listReminders(s,m, &reminders)
+		case "forget", "deremind":
+			deleteReminder(s,m, &reminders)
+		} 
 	} else if strings.Contains(normMsg, "kiss") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) {
 		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
 	} else if strings.Contains(normMsg, "mwah") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) && (m.Author.ID == "371077314412412929"){
