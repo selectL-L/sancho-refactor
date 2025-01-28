@@ -16,11 +16,13 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"gopkg.in/gographics/imagick.v3/imagick"
+	"github.com/k4s/webrowser"
 )
 
 var orb *imagick.MagickWand
 var reminders []Reminder
 var status bool
+var browser webrowser.Webrowser
 
 func main() {
 	status = true
@@ -58,13 +60,16 @@ func main() {
 	discord.AddHandler(messageCreate)
 	discord.AddHandler(presenceUpdate)
 	discord.AddHandler(messageUpdate)
-	defer discord.Close()
 
 	err = discord.Open()
 	if err != nil {
 		fmt.Println("error opening connection,", err)
 		return
 	}
+	defer discord.Close()
+
+	browser = webrowser.NewWebrowse()
+
 	fmt.Printf("[%s] The onus has fallen onto me.\n", time.Now().Format(time.TimeOnly))
 
 	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331362212056399933/eeper_don.png?ex=6791572e&is=679005ae&hm=c8184b914a31af8911e55d911bbe10d461f8b08ee379f820130f4ca44daf6d18&")
@@ -187,6 +192,7 @@ func main() {
 				string(gb),)
 			fmt.Println("That's all.")
 			os.Remove("sancho.exe")
+			// if you're seeing this... please do not bring this to light. do not make my severance even more painful. i love them so, so much - in times when every person from my life disappeared, they filled that void.
 			return
 		default:
 		}
@@ -202,11 +208,9 @@ func presenceUpdate(s *discordgo.Session, m *discordgo.PresenceUpdate){
 	if m.User.ID == "479126092330827777"{
 		if m.Status == discordgo.StatusOffline && status {
 			status = false
-			fmt.Println("changed")
 		}
 		if m.Status != discordgo.StatusOffline && !status {
 			status = true
-			fmt.Println("changed")
 		}
 	}
 }
@@ -312,6 +316,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			listReminders(s,m, &reminders)
 		case "forget", "deremind":
 			deleteReminder(s,m, &reminders)
+		case "prescript", "yan":
+			getPrescript(s,m)
 		} 
 	} else if slices.Contains(strings.Split(normMsg, " "), "kiss") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) {
 		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())

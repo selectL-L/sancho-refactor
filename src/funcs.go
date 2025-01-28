@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/k4s/phantomgo"
 	"gopkg.in/gographics/imagick.v3/imagick"
 )
 
@@ -37,7 +39,7 @@ func help(s *discordgo.Session, m *discordgo.MessageCreate){
 
 func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 	c, err := s.State.Channel(m.ChannelID)
-	if err != nil {
+	if err != nil || strings.Contains(m.Content, "bread"){
 		return
 	}
 	if roll := composeRoll(m.Content); roll == "I know what you are."{
@@ -50,11 +52,11 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 func editRoll(s *discordgo.Session, m *discordgo.MessageUpdate, mymsg *discordgo.Message){
 	c, err := s.State.Channel(m.ChannelID)
-	if err != nil {
+	if err != nil || strings.Contains(m.Content, "bread"){
 		return
 	}
-	if roll := composeRoll(m.Content); roll == "I know what you are."{
-		s.ChannelMessageEdit(c.ID, mymsg.ID, roll)
+	if roll := composeRoll(m.Content); roll == ""{
+		s.ChannelMessageEdit(c.ID, mymsg.ID, "I know what you are.")
 	} else {
 		s.ChannelMessageEdit(c.ID, mymsg.ID, "Your roll is "+ roll +".")
 	}
@@ -72,7 +74,7 @@ func composeRoll(i string) string{
 		countS, rest, found := strings.Cut(r, "d")
 		if !found {
 
-			return "I know what you are."
+			return ""
 		}
 
 		if countS == "" {
@@ -80,7 +82,7 @@ func composeRoll(i string) string{
 		} else {
 			count, err = strconv.Atoi(countS)
 			if err != nil {
-				return "I know what you are."
+				return ""
 			}
 		}
 
@@ -91,12 +93,12 @@ func composeRoll(i string) string{
 
 		max, err = strconv.Atoi(rest[:modRune])
 		if err != nil {
-			return "I know what you are."
+			return ""
 		}
 
 		if max < 1 || count < 1 {
 			fmt.Println(max, count)
-			return "I know what you are."
+			return ""
 		}
 
 		rawStr := ""
@@ -117,7 +119,7 @@ func composeRoll(i string) string{
 			}
 			mod, err = strconv.Atoi(rest[1:modRune])
 			if err != nil {
-				return "I know what you are."
+				return ""
 			}
 
 			switch sign {
@@ -302,4 +304,22 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.Magi
 			},
 		},
 	})
+}
+
+// IN DEVELOPMENT
+func getPrescript(s *discordgo.Session, m *discordgo.MessageCreate){
+	prescript, err := browser.Download(&phantomgo.Param{
+		Method: "GET",
+		Url: "https://nyos.dev/prescript",
+		Header:       http.Header{"Cookie": []string{"your cookies"}},
+		UsePhantomJS: true,
+	})
+	if err!=nil{
+		fmt.Println(err)
+		return
+	}
+	scanner := bufio.NewScanner(prescript.Body)
+	for scanner.Scan(){
+		fmt.Println(scanner.Text())
+	}
 }
