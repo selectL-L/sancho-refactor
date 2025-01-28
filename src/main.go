@@ -57,6 +57,7 @@ func main() {
 	discord.AddHandler(ready)
 	discord.AddHandler(messageCreate)
 	discord.AddHandler(presenceUpdate)
+	discord.AddHandler(messageUpdate)
 	defer discord.Close()
 
 	err = discord.Open()
@@ -216,6 +217,36 @@ func iterateReminders(s *discordgo.Session){
 		case <-reminders[i].timer.C:
 			defer remind(s, &(reminders[i]))
 		default:
+		}
+	}
+}
+
+func messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdate){
+	normMsg := strings.TrimSpace(strings.ToLower(m.ContentWithMentionsReplaced()))
+	if len(normMsg) == 0 {
+		return
+	}
+	if normMsg[0] == '.'{
+		msgs, err := s.ChannelMessages(m.ChannelID, 100, "", m.ID, "")
+		if err!=nil{
+			log.Println(err)
+			return
+		}
+		var mymsg *discordgo.Message
+		for _, r := range msgs{
+			if r.ReferencedMessage != nil {
+				if r.Author.ID == s.State.User.ID && r.ReferencedMessage.ID == m.ID {
+					mymsg = r
+				}
+			}
+		}
+		if mymsg == nil {
+			log.Println("couldn't find it :(")
+			return
+		} // ok if we HAVE the message, it must be right
+		cmd := strings.Split(normMsg[1:]," ")[0]
+		if cmd == "roll"{
+			editRoll(s,m,mymsg)
 		}
 	}
 }

@@ -8,7 +8,7 @@
 
 **.roll** - Roll a random value
 -# Accepts both simple numbers and dice rolls
--# Edit functionality coming soon!
+-# Shi Association Fixer Tip: You can edit your command, and she will change her roll!
 
 **.bod** - *Suppress your feelings. And remind yourself; money, fame, and bots rule over this world.*
 

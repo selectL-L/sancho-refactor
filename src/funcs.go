@@ -25,7 +25,7 @@ func sadness(s *discordgo.Session, m *discordgo.MessageCreate) {
 	fmt.Println(err)
 }
 
-func help(s *discordgo.Session, m *discordgo.MessageCreate) {
+func help(s *discordgo.Session, m *discordgo.MessageCreate){
 	ht, err := os.ReadFile("help.md")
 	if err!=nil{
 		sadness(s,m)
@@ -40,23 +40,39 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	// _, err := s.State.Guild(c.GuildID)
-	// if err != nil {
-	// 	return
-	// }
+	if roll := composeRoll(m.Content); roll == "I know what you are."{
+		s.ChannelMessageSendReply(c.ID, roll, m.SoftReference())
+	} else {
+		s.ChannelMessageSendReply(c.ID, "Your roll is "+ roll+".", m.SoftReference())
+	}
+}
 
+
+func editRoll(s *discordgo.Session, m *discordgo.MessageUpdate, mymsg *discordgo.Message){
+	c, err := s.State.Channel(m.ChannelID)
+	if err != nil {
+		return
+	}
+	if roll := composeRoll(m.Content); roll == "I know what you are."{
+		s.ChannelMessageEdit(c.ID, mymsg.ID, roll)
+	} else {
+		s.ChannelMessageEdit(c.ID, mymsg.ID, "Your roll is "+ roll +".")
+	}
+}
+
+func composeRoll(i string) string{
 	var count, max, mod int
-	r, _ := strings.CutPrefix(m.Content, ".roll ")
+	r, _ := strings.CutPrefix(i, ".roll ")
 	if idk, err := strconv.Atoi(r); err == nil && idk > 0 {
 		count = 1
 		max, _ = strconv.Atoi(r)
 		mod = 0
-		s.ChannelMessageSendReply(c.ID, "Your roll is "+strconv.Itoa(int(rand.Int63n(int64(max))+1))+".", m.Reference())
+		return strconv.Itoa(int(rand.Int63n(int64(max))+1))
 	} else {
 		countS, rest, found := strings.Cut(r, "d")
 		if !found {
-			iKnowWhatYouAre(s, m)
-			return
+
+			return "I know what you are."
 		}
 
 		if countS == "" {
@@ -64,27 +80,7 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			count, err = strconv.Atoi(countS)
 			if err != nil {
-				if r == "bread" {
-					img, err := os.Open("img/breadroll.jpg")
-					if err!=nil{
-						sadness(s,nil)
-						return
-					}
-					s.ChannelMessageSendComplex(m.ChannelID, &discordgo.MessageSend{
-						Content: "I know what y- You. Again. You know what? FINE. Here's your breadroll. Don't ask me again.",
-						Reference: m.Reference(),
-						Files: []*discordgo.File{
-							{
-								Name:   "breadroll.jpg",
-								Reader: img,
-							},},
-					})
-					img.Close()
-					os.Remove("img/breadroll.jpg")
-					return
-				}
-				iKnowWhatYouAre(s, m)
-				return
+				return "I know what you are."
 			}
 		}
 
@@ -95,14 +91,12 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		max, err = strconv.Atoi(rest[:modRune])
 		if err != nil {
-			iKnowWhatYouAre(s, m)
-			return
+			return "I know what you are."
 		}
 
 		if max < 1 || count < 1 {
 			fmt.Println(max, count)
-			iKnowWhatYouAre(s, m)
-			return
+			return "I know what you are."
 		}
 
 		rawStr := ""
@@ -123,8 +117,7 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 			mod, err = strconv.Atoi(rest[1:modRune])
 			if err != nil {
-				iKnowWhatYouAre(s, m)
-				return
+				return "I know what you are."
 			}
 
 			switch sign {
@@ -142,12 +135,11 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		}
 
-		out := "Your roll is " + strconv.Itoa(sum) + " (" + rawStr[:len(rawStr)-1] + ")."
-		if len(out) > 2000 {
-			s.ChannelMessageSendReply(c.ID, "Your roll is "+strconv.Itoa(sum)+".", m.Reference())
-			return
-		}
-		s.ChannelMessageSendReply(c.ID, out, m.Reference())
+		out := strconv.Itoa(sum) + " (" + rawStr[:len(rawStr)-1] + ")"
+		outFull := "Your roll is " + out + "."
+		if len(outFull) > 2000 {
+			return strconv.Itoa(sum)
+		} else {return out}
 	}
 }
 
