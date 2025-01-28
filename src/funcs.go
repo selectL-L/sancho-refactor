@@ -81,6 +81,7 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 					})
 					img.Close()
 					os.Remove("img/breadroll.jpg")
+					return
 				}
 				iKnowWhatYouAre(s, m)
 				return
@@ -160,14 +161,14 @@ func bod(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil {
 		return
 	}
-	resp, err := http.Get("https://tiphereth.zasz.su/static/assets/cards_thumb/Shi1.jpg")
+	resp, err := http.Get("https://tiphereth.zasz.su/static/assets/cards/Shi1.png")
 	if err != nil {
 		sadness(s, m)
 	}
 	defer resp.Body.Close()
 	yujin := resp.Body
 
-	resp, err = http.Get("https://tiphereth.zasz.su/static/assets/cards_thumb/Roland4Phase_Yujin.jpg")
+	resp, err = http.Get("https://tiphereth.zasz.su/static/assets/cards/Roland4Phase_Yujin.png")
 	if err != nil {
 		sadness(s, m)
 	}

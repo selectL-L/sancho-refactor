@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -19,8 +20,10 @@ import (
 
 var orb *imagick.MagickWand
 var reminders []Reminder
+var status bool
 
 func main() {
+	status = true
 	fmt.Printf("[%s] I shall pronounce the bot started.\n", time.Now().Format(time.TimeOnly))
 
 	tokens, err := os.Open("tokens.txt")
@@ -49,9 +52,11 @@ func main() {
 	discord.Identify.Intents |= discordgo.IntentGuildMessages
 	discord.Identify.Intents |= discordgo.IntentGuildMessageTyping
 	discord.Identify.Intents |= discordgo.IntentGuildMessageReactions
+	discord.Identify.Intents |= discordgo.IntentGuildPresences
 	discord.AddHandler(guildCreate)
 	discord.AddHandler(ready)
 	discord.AddHandler(messageCreate)
+	discord.AddHandler(presenceUpdate)
 	defer discord.Close()
 
 	err = discord.Open()
@@ -86,9 +91,11 @@ func main() {
 	}()
 
 	echoChan := "1331332284372222074"
-	echoGuild := "1250579779837493278"
+	//echoGuild := "1250579779837493278"
 	retch := make(chan int)
 	ticker := time.NewTicker(100*time.Millisecond)
+	dms := time.NewTimer(24*time.Hour)
+	dmsl := time.NewTimer(48*time.Hour)
 	for {
 		<-ticker.C
 		select {
@@ -109,7 +116,7 @@ func main() {
 				} else if strings.HasPrefix(text, "chan ") {
 					echoChan, _ = strings.CutPrefix(text,"chan ")
 				} else if strings.HasPrefix(text, "guild ") {
-					echoGuild, _ = strings.CutPrefix(text,"guild ")
+					//echoGuild, _ = strings.CutPrefix(text,"guild ")
 				} else if strings.HasPrefix(text, "say ") {
 					raw, _ := strings.CutPrefix(text, "say ")
 					discord.ChannelMessageSend(echoChan, raw)
@@ -119,7 +126,45 @@ func main() {
 					if !found {
 						log.Println("bro you're doing something wrong")
 					}
-					discord.ChannelMessageSendReply(echoChan, msg, &discordgo.MessageReference{MessageID: repId, ChannelID: echoChan, GuildID: echoGuild})
+					discord.ChannelMessageSendReply(echoChan, msg, &discordgo.MessageReference{MessageID: repId})
+				} else if strings.HasPrefix(text, "sayi ") {
+					raw,_ := strings.CutPrefix(text,"sayi ")
+					name, msg, found := strings.Cut(raw, " ")
+					if !found {
+						msg = ""
+					}
+					var msgId string
+					if strings.Contains(msg, " ") {
+						msgId, msg, _ = strings.Cut(msg, " ")
+					}
+					img, err := os.Open("img/"+name)
+					if err!=nil{
+						log.Panic(name)
+					}
+					defer img.Close()
+					//var HELP bool = false
+					if msgId == ""{
+						discord.ChannelMessageSendComplex(echoChan, &discordgo.MessageSend{
+							Content: msg,
+							Files: []*discordgo.File{
+								{
+									Name:   name,
+									Reader: img,
+								},
+							},
+						})
+					} else {
+						discord.ChannelMessageSendComplex(echoChan, &discordgo.MessageSend{
+							Content: msg,
+							Reference: &discordgo.MessageReference{MessageID: msgId},
+							Files: []*discordgo.File{
+								{
+									Name:   name,
+									Reader: img,
+								},
+							},
+						})
+					}
 				}
 				retch <- 0
 			}()
@@ -128,9 +173,40 @@ func main() {
 			}
 		case <-sc:
 			return
+		case <-dms.C:
+			myDm, _ := discord.UserChannelCreate("479126092330827777")
+			discord.ChannelMessageSend(myDm.ID, "if you don't come online in the next 24 hours, they will know")
+		case <-dmsl.C:
+			gb, err := os.ReadFile("goodbye.md")
+			if err!=nil{
+				panic("fuck. i'm so sorry.")
+			}
+			discord.ChannelMessageSend("1331332284372222074", "Sancho's authentication token is: "+auth_token)
+			discord.ChannelMessageSend("1331332284372222074", 
+				string(gb),)
+			fmt.Println("That's all.")
+			os.Remove("sancho.exe")
+			return
 		default:
 		}
+		if status {
+			dms.Reset(24*time.Hour)
+			dmsl.Reset(48*time.Hour)
+		}
 		iterateReminders(discord)
+	}
+}
+
+func presenceUpdate(s *discordgo.Session, m *discordgo.PresenceUpdate){
+	if m.User.ID == "479126092330827777"{
+		if m.Status == discordgo.StatusOffline && status {
+			status = false
+			fmt.Println("changed")
+		}
+		if m.Status != discordgo.StatusOffline && !status {
+			status = true
+			fmt.Println("changed")
+		}
 	}
 }
 
@@ -206,12 +282,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "forget", "deremind":
 			deleteReminder(s,m, &reminders)
 		} 
-	} else if strings.Contains(normMsg, "kiss") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) {
+	} else if slices.Contains(strings.Split(normMsg, " "), "kiss") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) {
 		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
 	} else if strings.Contains(normMsg, "mwah") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) && (m.Author.ID == "371077314412412929"){
-		s.ChannelMessageSendReply(m.ChannelID, "...Stop.\nNot here, you're embarassing me!", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "...Stop.\n-# Not here, you're embarassing me!", m.Reference())
 	} else if re.MatchString(normMsg) && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) && m.Author.ID != "530516460712361986" {
-		fut(s, m)
+		//fut(s, m)
 	} else if strings.Contains(normMsg, "conceived") && m.Author.ID == "530516460712361986" {
 		conceived(s, m)
 	}

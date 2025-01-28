@@ -1,6 +1,6 @@
 ## **Commands:**
 ***Reminders:***
-**.remind/.remindme** - Set a reminder (Use "to" at the beginning of your message)
+**.remind/.remindme** - Set a reminder (Use "to" at the beginning of your reminder!)
 -# .remind can accept a target mention
 -# Can be set timer-style (in 2 hours) or alarm-style (at 21:00 on 01.01.2025)
 **.reminders** - Lists all your reminders

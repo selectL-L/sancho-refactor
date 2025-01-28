@@ -29,7 +29,7 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 
 	rawCmd, _ := strings.CutPrefix(m.Content, ".remind")
 	if !slices.Contains(strings.Split(rawCmd, " "), "to"){
-		s.ChannelMessageSendReply(m.ChannelID, "I know what you are. (please use \"to\" at the beginning of your message)", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "I know what you are. (please use \"to\" at the beginning of your reminder)", m.Reference())
 		return
 	}
 	cmd := strings.Split(strings.TrimSpace(rawCmd), " ")
