@@ -100,8 +100,8 @@ func main() {
 	//echoGuild := "1250579779837493278"
 	retch := make(chan int)
 	ticker := time.NewTicker(100*time.Millisecond)
-	dms := time.NewTimer(24*time.Hour)
-	dmsl := time.NewTimer(48*time.Hour)
+	dms := time.NewTimer(12*time.Hour)
+	dmsl := time.NewTimer(24*time.Hour)
 	for {
 		<-ticker.C
 		select {
@@ -197,8 +197,8 @@ func main() {
 		default:
 		}
 		if status {
-			dms.Reset(24*time.Hour)
-			dmsl.Reset(48*time.Hour)
+			dms.Reset(12*time.Hour)
+			dmsl.Reset(24*time.Hour)
 		}
 		iterateReminders(discord)
 	}
