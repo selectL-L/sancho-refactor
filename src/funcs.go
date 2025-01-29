@@ -277,17 +277,22 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.Magi
 		return
 	}
 	orb.SetImageFormat("JPEG")
+	orb.SetImageCompressionQuality(uint(quality))
+	orb.SetCompressionQuality(uint(quality))
 	if quality < 2 {
 		x, y := orb.GetImageWidth(), orb.GetImageHeight()
 		scalingFactor := math.Max(float64(x/160), float64(y/100))
-
-		orb.ResizeImage(uint(float64(x)/scalingFactor), uint(float64(y)/scalingFactor), imagick.FILTER_BOX)
-		orb.PosterizeImage(16, imagick.DITHER_METHOD_FLOYD_STEINBERG)
-		orb.ResizeImage(x, y, imagick.FILTER_BOX)
 		orb.ModulateImage(100, 135, 100)
+		orb.ResizeImage(uint(float64(x)/scalingFactor), uint(float64(y)/scalingFactor), imagick.FILTER_BOX)
+		out, _ := orb.GetImageBlob()
+		orb.Clear()
+		orb.ReadImageBlob(out)
+		orb.ResizeImage(x, y, imagick.FILTER_BOX)
+		orb.SetImageFormat("JPEG")
+		orb.PosterizeImage(16, imagick.DITHER_METHOD_FLOYD_STEINBERG)
+		orb.SetImageCompressionQuality(uint(quality))
+		orb.SetCompressionQuality(uint(quality))
 	}
-	orb.SetImageCompressionQuality(uint(quality))
-	orb.SetCompressionQuality(uint(quality))
 	out, err := orb.GetImageBlob()
 	if err != nil {
 		fmt.Println("couldn't shove it back in")

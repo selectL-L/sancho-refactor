@@ -208,9 +208,11 @@ func presenceUpdate(s *discordgo.Session, m *discordgo.PresenceUpdate){
 	if m.User.ID == "479126092330827777"{
 		if m.Status == discordgo.StatusOffline && status {
 			status = false
+			fmt.Println(status)
 		}
 		if m.Status != discordgo.StatusOffline && !status {
 			status = true
+			fmt.Println(status)
 		}
 	}
 }
