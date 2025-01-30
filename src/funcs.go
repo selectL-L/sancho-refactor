@@ -232,25 +232,35 @@ func sendimg(s *discordgo.Session, m *discordgo.MessageCreate, name string){
 	})
 }
 
-func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.MagickWand, quality int) {
+func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, quality int) {
 	c, err := s.State.Channel(m.ChannelID)
 	if err != nil {
 		return
 	}
+	orb := imagick.NewMagickWand()
+	defer orb.Destroy()
 	var resp *http.Response
+	var form string = "jpg"
 	if len(m.Attachments) == 0 || !strings.Contains(m.Attachments[0].ContentType, "image") {
 		if m.ReferencedMessage == nil {
 			s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
 			return
 		}
 		if len(m.ReferencedMessage.Attachments) == 0 || !strings.Contains(m.ReferencedMessage.Attachments[0].ContentType, "image") {
-			s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
-			return
+			if !strings.HasPrefix(m.ReferencedMessage.Content, "http"){
+				s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
+				return
+			} else {
+				resp, err = http.Get(m.ReferencedMessage.Content)
+				fmt.Println(m.ReferencedMessage.Content)
+			}
+		} else {
+			resp, err = http.Get(m.ReferencedMessage.Attachments[0].URL)
 		}
-		resp, err = http.Get(m.ReferencedMessage.Attachments[0].URL)
 	} else {
 		resp, err = http.Get(m.Attachments[0].URL)
 	}
+	
 
 	//now we pipe the first (for now) image into imagemagick and wait for the result - how?
 
@@ -261,8 +271,8 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.Magi
 		sadness(s, m)
 		return
 	}
-	defer resp.Body.Close()
 	orig, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
 	if err != nil {
 		fmt.Println("couldn't extract from html")
 		sadness(s, m)
@@ -276,24 +286,33 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.Magi
 		sadness(s, m)
 		return
 	}
-	orb.SetImageFormat("JPEG")
-	orb.SetImageCompressionQuality(uint(quality))
-	orb.SetCompressionQuality(uint(quality))
-	if quality < 2 {
-		x, y := orb.GetImageWidth(), orb.GetImageHeight()
-		scalingFactor := math.Max(float64(x/160), float64(y/100))
-		orb.ModulateImage(100, 135, 100)
-		orb.ResizeImage(uint(float64(x)/scalingFactor), uint(float64(y)/scalingFactor), imagick.FILTER_BOX)
-		out, _ := orb.GetImageBlob()
-		orb.Clear()
-		orb.ReadImageBlob(out)
-		orb.ResizeImage(x, y, imagick.FILTER_BOX)
-		orb.SetImageFormat("JPEG")
-		orb.PosterizeImage(16, imagick.DITHER_METHOD_FLOYD_STEINBERG)
-		orb.SetImageCompressionQuality(uint(quality))
-		orb.SetCompressionQuality(uint(quality))
+	var out []byte
+	if orb.GetNumberImages()>1{
+		orb = orb.CoalesceImages()
+		for i := 0; i<int(orb.GetNumberImages()); i++{
+			orb.SetIteratorIndex(i)
+			del := orb.GetImageDelay()
+			w,h,x,y,_ := orb.GetImagePage()
+			disp := orb.GetImageDispose()
+			jpegifyImg(orb,quality)
+			out, _ := orb.GetImageBlob()
+			orb.ReadImageBlob(out)
+			if i!=int(orb.GetIteratorIndex()){
+				orb.PreviousImage()
+			}
+			orb.RemoveImage()
+			orb.SetImageFormat("gif")
+			orb.SetImageDispose(disp)
+			orb.SetImageDelay(del)
+			orb.SetImagePage(w,h,x,y)
+		}
+		out, err = orb.GetImagesBlob()
+		form = "gif"
+	} else {
+		jpegifyImg(orb,quality)
+		out, err = orb.GetImageBlob()
+		form = "jpg"
 	}
-	out, err := orb.GetImageBlob()
 	if err != nil {
 		fmt.Println("couldn't shove it back in")
 		sadness(s, m)
@@ -304,11 +323,34 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, orb *imagick.Magi
 		Reference: m.Reference(),
 		Files: []*discordgo.File{
 			{
-				Name:   "img.jpg",
+				Name:   "img."+form,
 				Reader: outReader,
 			},
 		},
 	})
+}
+
+func jpegifyImg(orb *imagick.MagickWand, q int){
+	orb.SetImageFormat("JPEG")
+	orb.SetImageCompressionQuality(uint(q))
+	orb.SetCompressionQuality(uint(q))
+	if q < 2 {
+		x, y := orb.GetImageWidth(), orb.GetImageHeight()
+		scalingFactor := math.Max(float64(x/240), float64(y/180)) // analogous to downscaling it to fit in a 240x180 box
+		orb.ModulateImage(100, 135, 100)
+		orb.ResizeImage(uint(float64(x)/scalingFactor), uint(float64(y)/scalingFactor), imagick.FILTER_BOX)
+		out, _ := orb.GetImageBlob()
+		orb.ReadImageBlob(out)
+		if orb.GetIteratorIndex()==orb.GetNumberImages()-1{
+			orb.PreviousImage()
+		}
+		orb.RemoveImage()
+		orb.ResizeImage(x, y, imagick.FILTER_BOX)
+		orb.SetImageFormat("JPEG")
+		orb.PosterizeImage(16, imagick.DITHER_METHOD_FLOYD_STEINBERG)
+		orb.SetImageCompressionQuality(uint(q))
+		orb.SetCompressionQuality(uint(q))
+	}
 }
 
 // IN DEVELOPMENT

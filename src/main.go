@@ -19,7 +19,6 @@ import (
 	"github.com/k4s/webrowser"
 )
 
-var orb *imagick.MagickWand
 var reminders []Reminder
 var status bool
 var browser webrowser.Webrowser
@@ -82,8 +81,6 @@ func main() {
 
 	imagick.Initialize()
 	defer imagick.Terminate()
-	orb = imagick.NewMagickWand()
-	defer orb.Destroy()
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -233,25 +230,25 @@ func messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdate){
 		return
 	}
 	if normMsg[0] == '.'{
-		msgs, err := s.ChannelMessages(m.ChannelID, 100, "", m.ID, "")
-		if err!=nil{
-			log.Println(err)
-			return
-		}
-		var mymsg *discordgo.Message
-		for _, r := range msgs{
-			if r.ReferencedMessage != nil {
-				if r.Author.ID == s.State.User.ID && r.ReferencedMessage.ID == m.ID {
-					mymsg = r
-				}
-			}
-		}
-		if mymsg == nil {
-			log.Println("couldn't find it :(")
-			return
-		} // ok if we HAVE the message, it must be right
 		cmd := strings.Split(normMsg[1:]," ")[0]
 		if cmd == "roll"{
+			msgs, err := s.ChannelMessages(m.ChannelID, 100, "", m.ID, "")
+			if err!=nil{
+				log.Println(err)
+				return
+			}
+			var mymsg *discordgo.Message
+			for _, r := range msgs{
+				if r.ReferencedMessage != nil {
+					if r.Author.ID == s.State.User.ID && r.ReferencedMessage.ID == m.ID {
+						mymsg = r
+					}
+				}
+			}
+			if mymsg == nil {
+				log.Println("couldn't find it :(")
+				return
+			} // ok if we HAVE the message, it must be right
 			editRoll(s,m,mymsg)
 		}
 	}
@@ -309,9 +306,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "ryeldhunt" :
 			sendimg(s, m, "theryeldhunt.gif")
 		case "jpeg" :
-			jpegify(s, m, orb, 5)
+			go jpegify(s, m, 4)
 		case "yesod" :
-			jpegify(s, m, orb, 1)
+			go jpegify(s, m, 1)
 		case "remind", "remindme":
 			setReminder(s, m, &reminders)
 		case "reminders":
