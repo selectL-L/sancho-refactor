@@ -29,22 +29,26 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 
 	rawCmd, _ := strings.CutPrefix(m.Content, ".remind")
 	if !slices.Contains(strings.Split(rawCmd, " "), "to"){
-		s.ChannelMessageSendReply(m.ChannelID, "I know what you are. (please use \"to\" at the beginning of your reminder)", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "I know what you are. (please use \"to\" at the beginning of your reminder text, e.g. .remind in 2h to do laundry)", m.Reference())
 		return
 	}
 	cmd := strings.Split(strings.TrimSpace(rawCmd), " ")
 	msg := strings.Join(cmd[slices.Index(cmd,"to")+1:], " ")
 	cmd = cmd[:slices.Index(cmd,"to")]
 	targetUser := m.Author.ID
+	if len(cmd) == 0 || len(msg) == 0 {
+		iKnowWhatYouAre(s,m)
+		return
+	}
 
 	if cmd[0] == "me" {
 		cmd = cmd[1:]
 	}
 	if cmd[0][0] == '<' {
-		if rawCmd[:2] != "me" {
+		if rawCmd[:2] != "me" && cmd[0][1] == '@' {
 			targetUser = cmd[0][2 : len(cmd[0])-1]
 			cmd = cmd[1:]
-		} else {
+		} else if cmd[0][1:3] != "t:"{
 			iKnowWhatYouAre(s,m)
 			return
 		}
@@ -52,7 +56,14 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 
 	timeInUnix := 0
 	eot := false
-	if slices.Contains(cmd, "at") || slices.Contains(cmd, "on"){
+	if strings.Contains(strings.Join(cmd, " "), "<t:"){
+		beg := strings.Index(rawCmd, "<t:")+3
+		timeInUnix,err = strconv.Atoi(rawCmd[beg:beg+strings.IndexAny(rawCmd[beg:], ">:")])
+		if err!=nil{
+			iKnowWhatYouAre(s,m)
+			return
+		}
+	} else if slices.Contains(cmd, "at") || slices.Contains(cmd, "on"){
 		var sec, min, hour, day, month, year int
 		if slices.Contains(cmd, "at"){
 			rawt := strings.Split(cmd[slices.Index(cmd,"at")+1], ":")

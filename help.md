@@ -1,8 +1,8 @@
 ## **Commands:**
 ***Reminders:***
-**.remind/.remindme** - Set a reminder (Use "to" at the beginning of your reminder!)
+**.remind/.remindme** - Set a reminder (Use "to" at the beginning of your reminder text!)
 -# .remind can accept a target mention
--# Can be set timer-style (in 2 hours) or alarm-style (at 21:00 on 01.01.2025)
+-# Can be set timer-style (in 2 hours) or alarm-style (at 21:00 on 01.01.2025) - works with Unix timestamps! (hopefully)
 **.reminders** - Lists all your reminders
 **.forget/.deremind** - Deletes a reminder (index supplied by .reminders)
 
@@ -14,6 +14,7 @@
 
 **.jpeg** - Ruin an image's quality
 **.yesod** - Destroy an image's soul
+-# Both command work on animated .GIFs! How incredible!
 
 **.nacho, .rye, .badword, .ryeldhunt** - Primitive image commands
 
