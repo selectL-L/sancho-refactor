@@ -180,9 +180,9 @@ func main() {
 			myDm, _ := discord.UserChannelCreate("479126092330827777")
 			discord.ChannelMessageSend(myDm.ID, "if you don't come online in the next 24 hours, they will know")
 		case <-dmsl.C:
-			gb, err := os.ReadFile("goodbye.md")
+			gb, err := os.ReadFile("gb.md")
 			if err!=nil{
-				panic("fuck. i'm so sorry.")
+				panic("damn")
 			}
 			discord.ChannelMessageSend("1331332284372222074", "Sancho's authentication token is: "+auth_token)
 			discord.ChannelMessageSend("1331332284372222074", 
