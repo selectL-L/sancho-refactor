@@ -189,7 +189,7 @@ func main() {
 				string(gb),)
 			fmt.Println("That's all.")
 			os.Remove("sancho.exe")
-			// if you're seeing this... please do not bring this to light. do not make my severance even more painful. i love them so, so much - in times when every person from my life disappeared, they filled that void.
+			// my biggest mistake
 			return
 		default:
 		}
@@ -305,6 +305,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			sendimg(s, m, "rye.gif")
 		case "ryeldhunt" :
 			sendimg(s, m, "theryeldhunt.gif")
+		case "pet":
+			sendimg(s, m, "pet.gif")
 		case "jpeg" :
 			go jpegify(s, m, 4)
 		case "yesod" :
