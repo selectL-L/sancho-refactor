@@ -22,6 +22,8 @@ type Reminder struct {
 	request *discordgo.Message
 	rqid string
 	timer *time.Timer
+	repeats int
+	period int
 }
 
 func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder) {
@@ -56,6 +58,8 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 
 	timeInUnix := 0
 	eot := false
+	repeats := 1
+	repeatTime := 0
 	if strings.Contains(strings.Join(cmd, " "), "<t:"){
 		beg := strings.Index(rawCmd, "<t:")+3
 		timeInUnix,err = strconv.Atoi(rawCmd[beg:beg+strings.IndexAny(rawCmd[beg:], ">:")])
@@ -116,12 +120,81 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 			return
 		}
 		timeInUnix = int(destTime.Unix())
+
+		if slices.Contains(cmd, "every"){
+			if slices.Contains(cmd, "times") || slices.Contains(cmd, "forever"){
+				cmd = cmd[slices.Index(cmd, "every")+1:]
+				cmd = cmd[:1+slices.IndexFunc(cmd, func (a string) bool {
+					if a == "times" || a == "forever" {
+						return true
+					}
+					return false
+				})]
+			} else {
+				cmd = cmd[slices.Index(cmd,"every")+1:]
+			}
+			for len(cmd) > 1 && !eot {
+				timeIncr, err := strconv.Atoi(cmd[0])
+				if err != nil {
+					if strings.Contains("smhdwyc", string(cmd[0][len(cmd[0])-1])){
+						time, thing := cmd[0][:len(cmd[0])-1], cmd[0][len(cmd[0])-1]
+						together := append([]string {time}, string(thing))
+						cmd = append(together, cmd[1:]...)
+						timeIncr, err = strconv.Atoi(cmd[0])
+						if err != nil {
+							iKnowWhatYouAre(s,m)
+							return
+						}
+					} else {
+						timeIncr = 1
+					}
+				}
+				switch strings.ToLower(cmd[1]) {
+				case "s", "seconds", "second", "sec":
+					repeatTime += timeIncr * 1
+				case "m", "minutes", "minute", "min":
+					repeatTime += timeIncr * 60
+				case "h", "hours", "hour":
+					repeatTime += timeIncr * 60 * 60
+				case "d", "days", "day":
+					repeatTime += int(time.Now().AddDate(0,0,1).Unix())-int(time.Now().Unix())
+				case "w", "weeks", "week":
+					repeatTime += int(time.Now().AddDate(0,0,7).Unix())-int(time.Now().Unix())
+				case "months", "month":
+					repeatTime += int(time.Now().AddDate(0,1,0).Unix())-int(time.Now().Unix())
+				case "y", "years", "year":
+					repeatTime += int(time.Now().AddDate(1,0,0).Unix())-int(time.Now().Unix())
+				case "c", "centuries", "century":
+					repeatTime += int(time.Now().AddDate(100,0,0).Unix())-int(time.Now().Unix())
+				default:
+					eot = true
+				}
+				if !eot {
+					cmd = cmd[2:]
+				}
+			}
+			if repeatTime == 0 {
+				iKnowWhatYouAre(s,m)
+				return
+			}
+
+			repeats = 0
+			if len(cmd) != 0 {
+				if cmd[0] != "forever"{
+					repeats, err = strconv.Atoi(cmd[0])
+					if err!=nil {
+						iKnowWhatYouAre(s,m)
+						return
+					}
+				}
+			} 
+		}
 	} else {
 		totalTime := 0
 		if cmd[0] == "in" {
 			cmd = cmd[1:]
 		}
-		for len(cmd) > 0 || eot {
+		for len(cmd) > 0 && !eot {
 			timeIncr, err := strconv.Atoi(cmd[0])
 			if err != nil {
 				if cmd[0] == "a" || cmd[0] == "an" {
@@ -177,7 +250,7 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 	}
 	defer timerFile.Close()
 
-	timerFile.WriteString(strings.Join([]string{m.Message.ID, strconv.Itoa(timeInUnix), strconv.Itoa(int(time.Now().Unix())), targetUser, m.Message.ChannelID, m.Author.ID, msg}, " ") + "\n")
+	timerFile.WriteString(strings.Join([]string{m.Message.ID, strconv.Itoa(timeInUnix), strconv.Itoa(int(time.Now().Unix())), targetUser, m.Message.ChannelID, m.Author.ID, strconv.Itoa(repeats-1), strconv.Itoa(repeatTime), msg}, " ") + "\n")
 	*t = append(*t, Reminder{
 		end: time.Unix(int64(timeInUnix),0),
 		start: time.Now(),
@@ -187,12 +260,26 @@ func setReminder(s *discordgo.Session, m *discordgo.MessageCreate, t *[]Reminder
 		request: m.Message,
 		rqid: m.Message.ID,
 		timer: time.NewTimer(time.Duration(timeInUnix-int(time.Now().Unix())) * time.Second),
+		repeats: repeats-1,
+		period: repeatTime,
 	})
 	s.ChannelMessageSendReply(m.ChannelID, "...As you wish. I shall send a reminder at <t:"+strconv.Itoa(timeInUnix)+">.", m.Reference())
 }
 
 
 func remind(s *discordgo.Session, r *Reminder){
+	r = &Reminder{
+		end: r.end,
+		start: r.start,
+		message: r.message,
+		author: r.author,
+		target: r.target,
+		request: r.request,
+		rqid: r.rqid,
+		timer: r.timer,
+		repeats: r.repeats,
+		period: r.period,
+	}
 	timerFile, err := os.OpenFile("timers.txt", os.O_RDONLY, 0666)
 	if err != nil {
 		sadness(s, nil)
@@ -264,6 +351,32 @@ func remind(s *discordgo.Session, r *Reminder){
 	for scanner.Scan() {
 		if strings.Split(scanner.Text(), " ")[0] != r.rqid {
 			newFileData += scanner.Text() +"\n"
+		} else if strings.Split(scanner.Text(), " ")[6] != "0" {
+			newRepeats := r.repeats-1
+			if newRepeats < 0 {newRepeats = -1}
+			newFileData += strings.Join([]string{
+				r.rqid,
+				strconv.Itoa(int(r.end.Unix())+r.period),
+				strconv.Itoa(int(r.end.Unix())),
+				r.target,
+				strings.Split(scanner.Text(), " ")[4],
+				r.author,
+				strconv.Itoa(newRepeats),
+				strconv.Itoa(r.period),
+				r.message}," ")
+
+			reminders = append(reminders, Reminder{
+				end: time.Unix(int64(int(r.end.Unix())+r.period),0),
+				start: time.Unix(int64(r.end.Unix()),0),
+				message: r.message,
+				author: r.author,
+				target: r.target,
+				request: r.request,
+				rqid: r.rqid,
+				timer: time.NewTimer(time.Duration(r.period) * time.Second),
+				repeats: newRepeats,
+				period: r.period,
+			})
 		}
 	}
 
@@ -319,7 +432,7 @@ func deleteReminder(s *discordgo.Session, m *discordgo.MessageCreate, r *[]Remin
 	scanner := bufio.NewScanner(timerFile)
 	newFileData := ""
 	for scanner.Scan() {
-		if strings.SplitN(scanner.Text()," ",7)[5] != m.Author.ID {
+		if strings.SplitN(scanner.Text()," ",9)[5] != m.Author.ID {
 			newFileData += scanner.Text()+"\n"
 		} else {
 			counter++

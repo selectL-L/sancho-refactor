@@ -180,13 +180,12 @@ func main() {
 			myDm, _ := discord.UserChannelCreate("479126092330827777")
 			discord.ChannelMessageSend(myDm.ID, "if you don't come online in the next 24 hours, they will know")
 		case <-dmsl.C:
-			gb, err := os.ReadFile("gb.md")
+			//gb, err := os.ReadFile("gb.md")
 			if err!=nil{
 				panic("damn")
 			}
-			discord.ChannelMessageSend("1331332284372222074", "Sancho's authentication token is: "+auth_token)
-			discord.ChannelMessageSend("1331332284372222074", 
-				string(gb),)
+			discord.ChannelMessageSend("1331332284372222074", "Sancho's authentication token is: "+auth_token+"\nThat is all.")
+			//discord.ChannelMessageSend("1331332284372222074", string(gb),)
 			fmt.Println("That's all.")
 			os.Remove("sancho.exe")
 			// my biggest mistake
@@ -319,6 +318,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			deleteReminder(s,m, &reminders)
 		case "prescript", "yan":
 			getPrescript(s,m)
+		case "lmd":
+			go lamentMournAndDespair(s,m)
+		case "said", "speechbubble":
+			go speechBubble(s,m)
 		} 
 	} else if slices.Contains(strings.Split(normMsg, " "), "kiss") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) {
 		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
@@ -351,33 +354,62 @@ func ready(s *discordgo.Session, m *discordgo.Ready) {
 	scanner := bufio.NewScanner(reminderFile)
 
 	for scanner.Scan() {
-		reminderText := strings.SplitN(scanner.Text(), " ", 7)
+		reminderText := strings.SplitN(scanner.Text(), " ", 9)
 		remTime, _ := strconv.Atoi(reminderText[1])
 		if int64(remTime) <= time.Now().Unix() {
-			// the order is: request message ID (0), end time (1), start time (2), target user ID (3), channel ID (4), message (5)
-			_, err := s.ChannelMessageSend(reminderText[4], "<@"+reminderText[3]+">: "+reminderText[6]+" (set at <t:"+reminderText[2]+">) (SORRY I'M LATE I WAS BEING LOBOTOMIZED)")
+			// the order is: request message ID (0), end time (1), start time (2), target user ID (3), channel ID (4), author ID (5), repeats (6), repeat period (7), message (8)
+			_, err := s.ChannelMessageSend(reminderText[4], "<@"+reminderText[3]+">: "+reminderText[8]+" (set at <t:"+reminderText[2]+">) (SORRY I'M LATE I WAS BEING LOBOTOMIZED)")
 			if err != nil {
 				sadness(s, nil)
 			}
+			if reminderText[6] != "0" {
+				endInt,_ := strconv.Atoi(reminderText[1])
+				repeatsInt, _ := strconv.Atoi(reminderText[6])
+				periodInt, _ := strconv.Atoi(reminderText[7])
+				skippedRepeats := (int(time.Now().Unix())-endInt)/periodInt
+				if repeatsInt>skippedRepeats || repeatsInt < 0{
+					newFileData += strings.Join([]string{
+						reminderText[0],
+						strconv.Itoa(endInt+periodInt*(skippedRepeats+1)),
+						strconv.Itoa(endInt+periodInt*skippedRepeats),
+						reminderText[3],
+						reminderText[4],
+						reminderText[5],
+						strconv.Itoa(repeatsInt-skippedRepeats),
+						strconv.Itoa(periodInt),
+						reminderText[8]}," ")
+				}
+				reminders = append(reminders, Reminder{
+					end: time.Unix(int64(endInt+periodInt*(skippedRepeats+1)),0),
+					start: time.Unix(int64(endInt+periodInt*skippedRepeats),0),
+					message: reminderText[8],
+					author: reminderText[5],
+					target: reminderText[3],
+					request: nil,
+					rqid: reminderText[0],
+					timer: time.NewTimer(time.Duration(endInt+periodInt*(skippedRepeats+1)-int(time.Now().Unix())) * time.Second),
+					repeats: repeatsInt-skippedRepeats,
+					period: periodInt,
+				})
+			}
 		} else {
 			newFileData += scanner.Text()+"\n"
-			totalTime, err := strconv.Atoi(reminderText[1])
-			if err!=nil {
-				sadness(s, nil)
-				panic(err)
-			}
-			totalTime -= int(time.Now().Unix())
 			endInt,_ := strconv.Atoi(reminderText[1])
+			totalTime := endInt - int(time.Now().Unix())
 			startInt,_ := strconv.Atoi(reminderText[2])
+			repeatsInt, _ := strconv.Atoi(reminderText[6])
+			periodInt, _ := strconv.Atoi(reminderText[7])
 			reminders = append(reminders, Reminder{
 				end: time.Unix(int64(endInt),0),
 				start: time.Unix(int64(startInt),0),
-				message: reminderText[6],
+				message: reminderText[8],
 				author: reminderText[5],
 				target: reminderText[3],
 				request: nil,
 				rqid: reminderText[0],
 				timer: time.NewTimer(time.Duration(totalTime) * time.Second),
+				repeats: repeatsInt,
+				period: periodInt,
 			})
 		}
 	}
