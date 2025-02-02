@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
@@ -71,12 +70,10 @@ func main() {
 
 	fmt.Printf("[%s] The onus has fallen onto me.\n", time.Now().Format(time.TimeOnly))
 
-	resp, err := http.Get("https://cdn.discordapp.com/attachments/1136333577643102259/1331362212056399933/eeper_don.png?ex=6791572e&is=679005ae&hm=c8184b914a31af8911e55d911bbe10d461f8b08ee379f820130f4ca44daf6d18&")
-	if err != nil {
-		log.Fatal("FUCK")
+	img, err := os.Open("img/goodnight.png")
+	if err!=nil{
+		panic("SHIT")
 	}
-	defer resp.Body.Close()
-	img := resp.Body
 	defer img.Close()
 
 	imagick.Initialize()
@@ -307,7 +304,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "pet":
 			sendimg(s, m, "pet.gif")
 		case "jpeg" :
-			go jpegify(s, m, 4)
+			go jpegify(s, m, 10)
 		case "yesod" :
 			go jpegify(s, m, 1)
 		case "remind", "remindme":
@@ -331,6 +328,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		//fut(s, m)
 	} else if strings.Contains(normMsg, "conceived") && m.Author.ID == "530516460712361986" {
 		conceived(s, m)
+	} else if strings.Contains(normMsg, "whoops"){
+		whoops, _ := s.User("371077314412412929")
+		if !slices.Contains(m.Mentions, whoops){
+			sendimg(s, m, "youcalled.jpg")
+		}
 	}
 }
 
