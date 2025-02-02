@@ -465,10 +465,10 @@ func lamentMournAndDespair(s *discordgo.Session, m *discordgo.MessageCreate){
 		orb.SetIteratorIndex(fr.f)
 		if fr.f>50 && fr.f<90 {
 			bwavatarOrb.ScaleImage(uint(128*fr.s/100),uint(128*fr.s/100))
-			orb.CompositeImage(bwavatarOrb, imagick.COMPOSITE_OP_OVER, true, fr.x-64, fr.y-64)
+			orb.CompositeImage(bwavatarOrb, imagick.COMPOSITE_OP_OVER, true, fr.x-fr.s/100*64, fr.y-fr.s/100*64)
 		} else {
 			avatarOrb.ScaleImage(uint(128*fr.s/100),uint(128*fr.s/100))
-			orb.CompositeImage(avatarOrb, imagick.COMPOSITE_OP_OVER, true, fr.x-64, fr.y-64)
+			orb.CompositeImage(avatarOrb, imagick.COMPOSITE_OP_OVER, true, fr.x-fr.s/100*64, fr.y-fr.s/100*64)
 		}
 	}
 
