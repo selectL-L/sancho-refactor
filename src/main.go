@@ -177,12 +177,12 @@ func main() {
 			myDm, _ := discord.UserChannelCreate("479126092330827777")
 			discord.ChannelMessageSend(myDm.ID, "if you don't come online in the next 24 hours, they will know")
 		case <-dmsl.C:
-			//gb, err := os.ReadFile("gb.md")
+			gb, err := os.ReadFile("gb2.md")
 			if err!=nil{
 				panic("damn")
 			}
 			discord.ChannelMessageSend("1331332284372222074", "Sancho's authentication token is: "+auth_token+"\nThat is all.")
-			//discord.ChannelMessageSend("1331332284372222074", string(gb),)
+			discord.ChannelMessageSend("1331332284372222074", string(gb),)
 			fmt.Println("That's all.")
 			os.Remove("sancho.exe")
 			// my biggest mistake
@@ -304,7 +304,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "pet":
 			sendimg(s, m, "pet.gif")
 		case "jpeg" :
-			go jpegify(s, m, 10)
+			go jpegify(s, m, 4)
 		case "yesod" :
 			go jpegify(s, m, 1)
 		case "remind", "remindme":
@@ -328,7 +328,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		//fut(s, m)
 	} else if strings.Contains(normMsg, "conceived") && m.Author.ID == "530516460712361986" {
 		conceived(s, m)
-	} else if strings.Contains(normMsg, "whoops"){
+	} else if strings.Contains(normMsg, "whoops") && m.Author.ID != "371077314412412929"{
 		whoops, _ := s.User("371077314412412929")
 		if !slices.Contains(m.Mentions, whoops){
 			sendimg(s, m, "youcalled.jpg")

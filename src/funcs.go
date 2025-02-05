@@ -242,6 +242,7 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, quality int) {
 	defer orb.Destroy()
 	var resp *http.Response
 	var form string = "jpg"
+	fmt.Println(m.Attachments)
 	if len(m.Attachments) == 0 || !strings.Contains(m.Attachments[0].ContentType, "image") {
 		if m.ReferencedMessage == nil {
 			s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
@@ -252,6 +253,8 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, quality int) {
 				s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
 				return
 			} else {
+				// s.ChannelMessageSendReply(m.ChannelID, "Please select a non-Tenor gif.", m.Reference())
+				// return
 				resp, err = http.Get(m.ReferencedMessage.Content)
 				fmt.Println(m.ReferencedMessage.Content)
 			}
