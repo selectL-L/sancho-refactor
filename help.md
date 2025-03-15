@@ -20,6 +20,8 @@
 
 **.said/.speechbubble** - Add a speechbubble to an image! How neat.
 
+**.sanchoball/.8ball** - Get a random bearing on your life decisions! *Very* cool.
+
 **.nacho, .rye, .badword, .ryeldhunt, .pet, .lmd** - Primitive image commands
 
 -# There is no help.

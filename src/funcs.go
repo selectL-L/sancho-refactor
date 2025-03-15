@@ -4,14 +4,17 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"image/png"
 	"io"
 	"math"
+	"math/big"
+	cryptorand "crypto/rand"
 	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
-	"image/png"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/k4s/phantomgo"
@@ -21,17 +24,17 @@ import (
 var err error
 
 // call if something goes wrong
-func sadness(s *discordgo.Session, m *discordgo.MessageCreate) {
+func sadness(s *discordgo.Session, m *discordgo.MessageCreate, errl error) {
 	if m != nil{
 		s.ChannelMessageSendReply(m.ChannelID, "Sorry, my creator must have fucked something up.\nPlease pierce him with a sanguine lance and drink his blood.", m.Reference())
 	}
-	fmt.Println(err)
+	fmt.Println(errl)
 }
 
 func help(s *discordgo.Session, m *discordgo.MessageCreate){
 	ht, err := os.ReadFile("help.md")
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 	}
 	s.ChannelMessageSendReply(m.ChannelID, 
 		string(ht),
@@ -43,7 +46,7 @@ func roll(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if err != nil || strings.Contains(m.Content, "bread"){
 		return
 	}
-	if roll := composeRoll(m.Content); roll == "I know what you are."{
+	if roll := composeRoll(m.Content); roll == ""{
 		s.ChannelMessageSendReply(c.ID, roll, m.SoftReference())
 	} else {
 		s.ChannelMessageSendReply(c.ID, "Your roll is "+ roll+".", m.SoftReference())
@@ -64,17 +67,16 @@ func editRoll(s *discordgo.Session, m *discordgo.MessageUpdate, mymsg *discordgo
 }
 
 func composeRoll(i string) string{
-	var count, max, mod int
+	var count, mod int
 	r, _ := strings.CutPrefix(i, ".roll ")
 	if idk, err := strconv.Atoi(r); err == nil && idk > 0 {
 		count = 1
-		max, _ = strconv.Atoi(r)
 		mod = 0
-		return strconv.Itoa(int(rand.Int63n(int64(max))+1))
+		num, _ := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(idk)))
+		return strconv.Itoa(int(num.Int64()+1))
 	} else {
 		countS, rest, found := strings.Cut(r, "d")
 		if !found {
-
 			return ""
 		}
 
@@ -92,7 +94,7 @@ func composeRoll(i string) string{
 			modRune = len(rest)
 		}
 
-		max, err = strconv.Atoi(rest[:modRune])
+		max, err := strconv.Atoi(rest[:modRune])
 		if err != nil {
 			return ""
 		}
@@ -105,7 +107,8 @@ func composeRoll(i string) string{
 		rawStr := ""
 		sum := 0
 		for i := 0; i < count; i++ {
-			v := rand.Intn(max) + 1
+			vbig, _ := cryptorand.Int(cryptorand.Reader, big.NewInt(int64((max))))
+			v := int(vbig.Int64()) + 1
 			rawStr += strconv.Itoa(v) + " "
 			sum += v
 		}
@@ -158,14 +161,14 @@ func bod(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	resp, err := http.Get("https://tiphereth.zasz.su/static/assets/cards/Shi1.png")
 	if err != nil {
-		sadness(s, m)
+		sadness(s,m,err)
 	}
 	defer resp.Body.Close()
 	yujin := resp.Body
 
 	resp, err = http.Get("https://tiphereth.zasz.su/static/assets/cards/Roland4Phase_Yujin.png")
 	if err != nil {
-		sadness(s, m)
+		sadness(s,m,err)
 	}
 	defer resp.Body.Close()
 	yujinDead := resp.Body
@@ -176,7 +179,8 @@ func bod(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if _, err := strconv.Atoi(pingId[2 : len(pingId)-1]); pingId[1] == '@' && err == nil {
 		ping = pingId
 	}
-	roll := rand.Intn(4) + 1
+	rollbig,_ := cryptorand.Int(cryptorand.Reader, big.NewInt(4))
+	roll := int(rollbig.Int64())+1
 	if roll == 4 {
 		s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
 			Content: "**4**" + " " + ping,
@@ -220,7 +224,7 @@ func sendimg(s *discordgo.Session, m *discordgo.MessageCreate, name string){
 	}
 	img, err := os.Open("img/"+name)
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 	}
 	defer img.Close()
 	s.ChannelMessageSendComplex(c.ID, &discordgo.MessageSend{
@@ -242,7 +246,6 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, quality int) {
 	defer orb.Destroy()
 	var resp *http.Response
 	var form string = "jpg"
-	fmt.Println(m.Attachments)
 	if len(m.Attachments) == 0 || !strings.Contains(m.Attachments[0].ContentType, "image") {
 		if m.ReferencedMessage == nil {
 			s.ChannelMessageSendReply(m.ChannelID, "Please send an actual image.", m.Reference())
@@ -256,7 +259,6 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, quality int) {
 				// s.ChannelMessageSendReply(m.ChannelID, "Please select a non-Tenor gif.", m.Reference())
 				// return
 				resp, err = http.Get(m.ReferencedMessage.Content)
-				fmt.Println(m.ReferencedMessage.Content)
 			}
 		} else {
 			resp, err = http.Get(m.ReferencedMessage.Attachments[0].URL)
@@ -272,34 +274,56 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, quality int) {
 	//ext := fn[strings.LastIndex(fn, ".")+1:]
 	if err != nil {
 		fmt.Println("couldn't get image from internet")
-		sadness(s, m)
+		sadness(s,m,err)
 		return
 	}
 	orig, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		fmt.Println("couldn't extract from html")
-		sadness(s, m)
+		sadness(s,m,err)
 		return
 	}
 
+	if m.ReferencedMessage != nil {
+		if strings.Contains(m.ReferencedMessage.Content, "tenor"){
+			st := string(orig)
+			url := strings.ReplaceAll(st[strings.Index(st, "contentUrl")+len("contentUrl\":\""):strings.Index(st, "thumbnailUrl")-3], "\\u002F", "/")
+			resp, err = http.Get(url)
+			if err != nil {
+				fmt.Println(url)
+				sadness(s,m,err)
+				return
+			}
+			orig, err = io.ReadAll(resp.Body)
+			resp.Body.Close()
+			if err != nil {
+				fmt.Println(url)
+				sadness(s,m,err)
+				return
+			}
+		}
+	}
+	
 	err = orb.ReadImageBlob(orig)
 	defer orb.Clear()
 	if err != nil {
 		fmt.Println("couldn't read img into orb", err)
-		sadness(s, m)
+		sadness(s,m,err)
 		return
 	}
 	var out []byte
 	if orb.GetNumberImages()>1{
 		orb = orb.CoalesceImages()
+		var disp imagick.DisposeType
+		var w,h,del uint; var x,y int
 		for i := 0; i<int(orb.GetNumberImages()); i++{
 			orb.SetIteratorIndex(i)
-			del := orb.GetImageDelay()
-			w,h,x,y,_ := orb.GetImagePage()
-			disp := orb.GetImageDispose()
+			del = orb.GetImageDelay()
+			w,h,x,y,_ = orb.GetImagePage()
+			disp = orb.GetImageDispose()
 			jpegifyImg(orb,quality)
-			out, _ := orb.GetImageBlob()
+			out, _ = orb.GetImageBlob()
 			orb.ReadImageBlob(out)
 			if i!=int(orb.GetIteratorIndex()){
 				orb.PreviousImage()
@@ -319,7 +343,7 @@ func jpegify(s *discordgo.Session, m *discordgo.MessageCreate, quality int) {
 	}
 	if err != nil {
 		fmt.Println("couldn't shove it back in")
-		sadness(s, m)
+		sadness(s,m,err)
 		return
 	}
 	outReader := bytes.NewReader(out)
@@ -340,8 +364,8 @@ func jpegifyImg(orb *imagick.MagickWand, q int){
 	orb.SetCompressionQuality(uint(q))
 	if q < 2 {
 		x, y := orb.GetImageWidth(), orb.GetImageHeight()
-		scalingFactor := math.Max(float64(x/240), float64(y/180)) // analogous to downscaling it to fit in a 240x180 box
-		orb.ModulateImage(100, 135, 100)
+		scalingFactor := math.Max(float64(x/160), float64(y/120)) // analogous to downscaling it to fit in a 240x180 box
+		orb.ModulateImage(100, 150, 100)
 		orb.ResizeImage(uint(float64(x)/scalingFactor), uint(float64(y)/scalingFactor), imagick.FILTER_BOX)
 		out, _ := orb.GetImageBlob()
 		orb.ReadImageBlob(out)
@@ -430,7 +454,7 @@ func lamentMournAndDespair(s *discordgo.Session, m *discordgo.MessageCreate){
 	defer orb.Destroy()
 	lmdOrig, err := os.Open("img/lmd.gif")
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 		return
 	}
 	defer lmdOrig.Close()
@@ -444,26 +468,34 @@ func lamentMournAndDespair(s *discordgo.Session, m *discordgo.MessageCreate){
 	}
 	avatar, err := s.UserAvatarDecode(target)
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 		return
 	}
 	var buf bytes.Buffer
 	err = png.Encode(&buf, avatar)
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 		return
 	}
 	avatarOrb := imagick.NewMagickWand()
 	defer avatarOrb.Destroy()
 	err = avatarOrb.ReadImageBlob(buf.Bytes())
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 		return
 	}
 	bwavatarOrb := avatarOrb.Clone()
-	bwavatarOrb.ModulateImage(50,0,100)
-	bwavatarOrb.SigmoidalContrastImage(true,20,100)
-	bwavatarOrb.BrightnessContrastImage(-25,80)
+	bwavatarOrb.SetImageAlphaChannel(imagick.ALPHA_CHANNEL_DEACTIVATE)
+	// bwavatarOrb.ModulateImage(50,0,100)
+	// bwavatarOrb.SigmoidalContrastImage(true,20,100)
+	// bwavatarOrb.BrightnessContrastImage(-25,80)
+	avgOrb := bwavatarOrb.Clone()
+	avgOrb.ResizeImage(1,1,imagick.FILTER_BOX)
+	avgOrb.ModulateImage(100,0,0)
+	a, _ := avgOrb.GetImagePixelColor(1,1)
+	avg := a.GetBlueQuantum() //should be the same, hopefully
+	bwavatarOrb.ThresholdImage(float64(avg))
+	bwavatarOrb.ModulateImage(101,100,100)
 	for _, fr := range frames {
 		orb.SetIteratorIndex(fr.f)
 		if fr.f>50 && fr.f<90 {
@@ -473,13 +505,13 @@ func lamentMournAndDespair(s *discordgo.Session, m *discordgo.MessageCreate){
 			avatarOrb.ScaleImage(uint(128*fr.s/100),uint(128*fr.s/100))
 			orb.CompositeImage(avatarOrb, imagick.COMPOSITE_OP_OVER, true, fr.x-fr.s*64/100, fr.y-fr.s*64/100)
 		}
-		orb.SetImageDispose(imagick.DISPOSE_PREVIOUS)
+		orb.SetImageDispose(imagick.DISPOSE_NONE)
 	}
-
+	orb = orb.CoalesceImages()
 	orb.SetImageFormat("GIF")
 	out, err := orb.GetImagesBlob()
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 		return
 	}
 	outReader := bytes.NewReader(out)
@@ -523,14 +555,14 @@ func speechBubble(s *discordgo.Session, m *discordgo.MessageCreate){
 
 	if err != nil {
 		fmt.Println("couldn't get image from internet")
-		sadness(s, m)
+		sadness(s,m,err)
 		return
 	}
 	orig, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		fmt.Println("couldn't extract from html")
-		sadness(s, m)
+		sadness(s,m,err)
 		return
 	}
 
@@ -545,7 +577,7 @@ func speechBubble(s *discordgo.Session, m *discordgo.MessageCreate){
 	
 	maskFile, err := os.Open("img/mask.png")
 	if err!=nil {
-		sadness(s,m)
+		sadness(s,m,err)
 		return
 	}
 	alphaOrb.ReadImageFile(maskFile)
@@ -563,7 +595,7 @@ func speechBubble(s *discordgo.Session, m *discordgo.MessageCreate){
 
 	out, err := orb.GetImageBlob()
 	if err!=nil{
-		sadness(s,m)
+		sadness(s,m,err)
 		return
 	}
 	outReader := bytes.NewReader(out)
@@ -576,4 +608,27 @@ func speechBubble(s *discordgo.Session, m *discordgo.MessageCreate){
 			},
 		},
 	})
+}
+
+
+func sanchoball(s *discordgo.Session, m *discordgo.MessageCreate){
+	outcomes := []string{"No.","Perhaps.","If Father wills it.","Most definitely.","Absolutely.","Maybe.","Clearly not.", "You'd be stupid to try.", "Is it not obvious?", "...", "Depends on you, and you alone.", "...You remind me of that arrogantly hopeful Fixer.", "For the Family, of course.", "V-verily, tis t-true-\n...You get the point. Yes.", "That is... simply impossible."}
+	today := time.Now().YearDay()+time.Now().Year()*365
+
+	_,msg,_ := strings.Cut(m.Content, " ")
+	msg = strings.ToLower(msg)
+	msgSalt := 0
+	for i, l := range msg {
+		msgSalt += int(l)*(i+1) * (((i+1)%2)*2-1)
+	}
+	var pseudo int
+	id, _ := strconv.Atoi(m.Author.ID)
+	if msgSalt != 0{
+		saltedRand := rand.New(rand.NewSource(int64(msgSalt)))
+		pseudo = int(math.Abs(float64((today + id + saltedRand.Int())%len(outcomes))))
+	} else {
+		pseudo = int(math.Abs(float64((today + id + rand.Int())%len(outcomes))))
+	}
+
+	s.ChannelMessageSendReply(m.ChannelID, outcomes[pseudo], m.SoftReference())
 }

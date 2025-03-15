@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"os"
 	"os/signal"
 	"regexp"
@@ -14,8 +15,8 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	"gopkg.in/gographics/imagick.v3/imagick"
 	"github.com/k4s/webrowser"
+	"gopkg.in/gographics/imagick.v3/imagick"
 )
 
 var reminders []Reminder
@@ -94,8 +95,9 @@ func main() {
 	//echoGuild := "1250579779837493278"
 	retch := make(chan int)
 	ticker := time.NewTicker(100*time.Millisecond)
-	dms := time.NewTimer(12*time.Hour)
-	dmsl := time.NewTimer(24*time.Hour)
+
+	defer panicMsg(discord)
+
 	for {
 		<-ticker.C
 		select {
@@ -173,25 +175,7 @@ func main() {
 			}
 		case <-sc:
 			return
-		case <-dms.C:
-			myDm, _ := discord.UserChannelCreate("479126092330827777")
-			discord.ChannelMessageSend(myDm.ID, "if you don't come online in the next 24 hours, they will know")
-		case <-dmsl.C:
-			gb, err := os.ReadFile("gb2.md")
-			if err!=nil{
-				panic("damn")
-			}
-			discord.ChannelMessageSend("1331332284372222074", "Sancho's authentication token is: "+auth_token+"\nThat is all.")
-			discord.ChannelMessageSend("1331332284372222074", string(gb),)
-			fmt.Println("That's all.")
-			os.Remove("sancho.exe")
-			// my biggest mistake
-			return
 		default:
-		}
-		if status {
-			dms.Reset(12*time.Hour)
-			dmsl.Reset(24*time.Hour)
 		}
 		iterateReminders(discord)
 	}
@@ -272,6 +256,7 @@ func guildCreate(s *discordgo.Session, m *discordgo.GuildCreate) {
 }
 
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	defer panicMsg(s)
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
@@ -281,6 +266,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	re := regexp.MustCompile("fuck|shit|ass|idiot|dumb|stupid|clanker|bitch")
 	normMsg := strings.TrimSpace(strings.ToLower(m.ContentWithMentionsReplaced()))
+	if len(normMsg) == 0 {
+		return
+	}
+	if strings.HasPrefix(normMsg, "(("){
+		lastI := strings.LastIndex(normMsg, "))")
+		if lastI == -1 {
+			lastI = len(normMsg)-2
+		}
+		normMsg = strings.TrimSpace(normMsg[2:lastI])
+	}
 	if len(normMsg) == 0 {
 		return
 	}
@@ -319,19 +314,25 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			go lamentMournAndDespair(s,m)
 		case "said", "speechbubble":
 			go speechBubble(s,m)
+		case "8ball", "sanchoball":
+			sanchoball(s,m)
+		case "settz":
+			setTimezone(s,m)
 		} 
 	} else if slices.Contains(strings.Split(normMsg, " "), "kiss") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) {
-		s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
+		//s.ChannelMessageSendReply(m.ChannelID, "...Maybe.", m.Reference())
 	} else if strings.Contains(normMsg, "mwah") && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) && (m.Author.ID == "371077314412412929"){
-		s.ChannelMessageSendReply(m.ChannelID, "...Stop.\n-# Not here, you're embarassing me!", m.Reference())
+		s.ChannelMessageSendReply(m.ChannelID, "...\n-# I'm sorry.", m.Reference())
 	} else if re.MatchString(normMsg) && (refid == s.State.User.ID || strings.Contains(normMsg, "sancho")) && m.Author.ID != "530516460712361986" {
 		//fut(s, m)
 	} else if strings.Contains(normMsg, "conceived") && m.Author.ID == "530516460712361986" {
 		conceived(s, m)
 	} else if strings.Contains(normMsg, "whoops") && m.Author.ID != "371077314412412929"{
-		whoops, _ := s.User("371077314412412929")
-		if !slices.Contains(m.Mentions, whoops){
-			sendimg(s, m, "youcalled.jpg")
+		if rand.Float64() <= 0.01 {
+			whoops, _ := s.User("371077314412412929")
+			if !slices.Contains(m.Mentions, whoops){
+				sendimg(s, m, "youcalled.jpg")
+			}
 		}
 	}
 }
@@ -362,7 +363,7 @@ func ready(s *discordgo.Session, m *discordgo.Ready) {
 			// the order is: request message ID (0), end time (1), start time (2), target user ID (3), channel ID (4), author ID (5), repeats (6), repeat period (7), message (8)
 			_, err := s.ChannelMessageSend(reminderText[4], "<@"+reminderText[3]+">: "+reminderText[8]+" (set at <t:"+reminderText[2]+">) (SORRY I'M LATE I WAS BEING LOBOTOMIZED)")
 			if err != nil {
-				sadness(s, nil)
+				sadness(s,nil,err)
 			}
 			if reminderText[6] != "0" {
 				endInt,_ := strconv.Atoi(reminderText[1])
@@ -417,6 +418,15 @@ func ready(s *discordgo.Session, m *discordgo.Ready) {
 	}
 	err = os.WriteFile("timers.txt", []byte(newFileData), 0666)
 	if err != nil {
-		sadness(s, nil)
+		sadness(s,nil,err)
+	}
+}
+
+
+func panicMsg(s *discordgo.Session){
+	a := recover()
+	if a != nil{
+		s.ChannelMessageSend("1331332284372222074","<@479126092330827777> FATAL CRASH: "+a.(error).Error())
+		panic(a.(error))
 	}
 }
