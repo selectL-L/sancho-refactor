@@ -1,36 +1,82 @@
 # If you prefer the allow list template instead of the deny list, see community template:
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
-# Binaries for programs and plugins
+# Sensitive data
+localdata/tokens.txt
+localdata/timers.txt
+localdata/timezones.txt
+
+# Binary files
+sancho-bot
+sancho-refactor
+__debug_bin
 *.exe
-*.exe~
+*.out
 *.dll
 *.so
 *.dylib
-*.cmd
-*.lnk
+bin/
 
-# Test binary, built with `go test -c`
+# Go specific
+# Binaries for programs and plugins
 *.test
+*.prof
+*.o
+*.a
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Output of the go coverage tool
 *.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
+profile.cov
 
 # Go workspace file
 go.work
-go.work.sum
 
-# env file
+# Dependency directories
+vendor/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.vs/
+.history/
+*.sublime-workspace
+*.sublime-project
+
+# Debug files
+debug
+debug.test
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Icon?
+Thumbs.db.meta
+
+# Log files
+*.log
+logs/
+log/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*.orig
+.tmp*
+
+# Build output directories
+build/
+dist/
+target/
+
+# Environment variables
 .env
-
-# tokens file
-tokens.txt
-timers.txt
-
-get_jsfile_to_phantom
-post_jsfile_to_phantom
-prescript.js # change!!!!!!!!!
-*.code-workspace
+.env.local

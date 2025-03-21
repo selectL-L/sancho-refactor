@@ -1,12 +1,17 @@
 # Sancho: The Matthew's La Mancha Land bot
-A silly little bot for a silly little server, written in DiscordGo.
 
-Current capabilities include:
-- Reminders!
-- Rolling dice (now with support for multiple modifiers!)
-- Boundary of Death
-- Jpeg command and its evil brother, Yesod command
-- Some other miscellaneous commands
+A Discord bot for Matthew's La Mancha Land server, written in Go.
 
-If you find an issue, open an issue here on GitHub.
-If you find bad code and know how to fix it, open a pull request. Please. My code is garbage.
+## Features
+- Reminders with custom time expressions
+- Dice rolling with complex modifiers
+- Image manipulation commands
+- Magic 8-ball style responses
+
+## Setup
+1. Create a `data/tokens.txt` file with your Discord bot token
+2. Run `go build` to compile the bot
+3. Run the executable `./sancho-bot`
+
+## Commands
+See `help.md` for a full list of commands and their usage. (to do)
