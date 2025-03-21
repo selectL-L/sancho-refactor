@@ -296,7 +296,7 @@ func (b *Bot) handleMessageCreate(s *discordgo.Session, m *discordgo.MessageCrea
 	}
 
 	// Handle other message patterns
-	content := strings.ToLower(m.Content)
+	strings.ToLower(m.Content)
 
 	// Add other message handlers here
 	// These can be moved to separate functions or a message handler system
